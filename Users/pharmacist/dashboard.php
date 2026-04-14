@@ -1,5 +1,7 @@
 <?php
 require_once '../../config.php';
+require_once '../../models/prescription.php';
+require_once '../../models/purchase_order.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {
@@ -16,6 +18,22 @@ if ($_SESSION['role_name'] !== 'Pharmacist') {
 $user_id = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
 $email = $_SESSION['email'];
+
+// Initialize models
+$prescription = new Prescription($conn);
+$purchaseOrder = new PurchaseOrder($conn);
+
+// Get recent prescriptions
+$recent_prescriptions = $prescription->getAllPrescriptions();
+
+// Get prescription statistics
+$prescription_stats = $prescription->getPrescriptionStats();
+
+// Get approved requisitions for purchase order generation
+$approved_requisitions = $purchaseOrder->getApprovedRequisitions();
+
+// Get purchase order statistics
+$po_stats = $purchaseOrder->getPurchaseOrderStats();
 ?>
 
 <!DOCTYPE html>
@@ -139,7 +157,31 @@ $email = $_SESSION['email'];
                         <i class="bi bi-capsule feature-icon"></i>
                         <h4>Medicine Inventory</h4>
                         <p>Check stock levels and orders</p>
-                        <button class="btn btn-primary">Manage</button>
+                        <a href="manage_inventory.php" class="btn btn-primary">
+                            <i class="bi bi-gear"></i> Manage
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-file-plus feature-icon"></i>
+                        <h4>Create Requisition</h4>
+                        <p>Generate new requisition</p>
+                        <a href="create_requisition.php" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Create
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-clipboard-check feature-icon"></i>
+                        <h4>Manage Requisitions</h4>
+                        <p>View, approve, and manage requisitions</p>
+                        <a href="manage_requisitions.php" class="btn btn-primary">
+                            <i class="bi bi-gear"></i> Manage
+                        </a>
                     </div>
                 </div>
                 
@@ -168,30 +210,129 @@ $email = $_SESSION['email'];
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>#PRX001</td>
-                                <td>Juan Dela Cruz</td>
-                                <td>Paracetamol 500mg</td>
-                                <td>2024-04-14</td>
-                                <td><span class="badge bg-warning">Pending</span></td>
-                                <td><button class="btn btn-sm btn-success">Process</button></td>
-                            </tr>
-                            <tr>
-                                <td>#PRX002</td>
-                                <td>Maria Santos</td>
-                                <td>Amoxicillin 250mg</td>
-                                <td>2024-04-14</td>
-                                <td><span class="badge bg-success">Dispensed</span></td>
-                                <td><button class="btn btn-sm btn-info">View</button></td>
-                            </tr>
+                            <?php if (!empty($recent_prescriptions)): ?>
+                                <?php foreach ($recent_prescriptions as $presc): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($presc['prescription_id']); ?></td>
+                                        <td><?php echo htmlspecialchars($presc['patient_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($presc['medicine_name'] . ' ' . $presc['dosage']); ?></td>
+                                        <td><?php echo htmlspecialchars($presc['date_prescribed']); ?></td>
+                                        <td>
+                                            <?php
+                                            $badge_class = '';
+                                            switch($presc['status']) {
+                                                case 'Pending':
+                                                    $badge_class = 'bg-warning';
+                                                    break;
+                                                case 'Processing':
+                                                    $badge_class = 'bg-info';
+                                                    break;
+                                                case 'Dispensed':
+                                                    $badge_class = 'bg-success';
+                                                    break;
+                                                case 'Cancelled':
+                                                    $badge_class = 'bg-danger';
+                                                    break;
+                                                default:
+                                                    $badge_class = 'bg-secondary';
+                                            }
+                                            ?>
+                                            <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($presc['status']); ?></span>
+                                        </td>
+                                        <td>
+                                            <?php if ($presc['status'] === 'Pending'): ?>
+                                                <a href="process_order.php?prescription_id=<?php echo urlencode($presc['prescription_id']); ?>" 
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="bi bi-cart-plus"></i> Process
+                                                </a>
+                                            <?php else: ?>
+                                                <button class="btn btn-sm btn-info" onclick="viewPrescription('<?php echo urlencode($presc['prescription_id']); ?>')">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="text-center">No prescriptions found</td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
+            </div>
+            
+            <div class="dashboard-card">
+                <h3><i class="bi bi-cart-plus"></i> Purchase Orders - Process 14</h3>
+                <p class="text-muted">Generate Purchase Orders from Approved Requisitions</p>
+                
+                <?php if (!empty($approved_requisitions)): ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Requisition ID</th>
+                                    <th>Requested By</th>
+                                    <th>Date</th>
+                                    <th>Urgency</th>
+                                    <th>Total Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($approved_requisitions as $req): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($req['requisition_id']); ?></td>
+                                        <td><?php echo htmlspecialchars($req['first_name'] . ' ' . $req['last_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($req['requisition_date']); ?></td>
+                                        <td>
+                                            <span class="badge 
+                                                <?php 
+                                                echo match($req['urgency']) {
+                                                    'Normal' => 'bg-success',
+                                                    'Urgent' => 'bg-warning',
+                                                    'Critical' => 'bg-danger',
+                                                    default => 'bg-secondary'
+                                                }; 
+                                                ?>">
+                                                <?php echo htmlspecialchars($req['urgency']); ?>
+                                            </span>
+                                        </td>
+                                        <td>₱<?php echo number_format($req['total_amount'], 2); ?></td>
+                                        <td>
+                                            <a href="generate_purchase_order.php?requisition_id=<?php echo urlencode($req['id']); ?>" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="bi bi-cart-plus"></i> Generate PO
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No approved requisitions available for purchase order generation.
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function viewPrescription(prescriptionId) {
+            // Redirect to process order page with view mode
+            window.location.href = 'process_order.php?prescription_id=' + prescriptionId + '&view=1';
+        }
+        
+        // Auto-refresh dashboard every 30 seconds to check for new prescriptions
+        setInterval(function() {
+            location.reload();
+        }, 30000);
+    </script>
 </body>
 </html>

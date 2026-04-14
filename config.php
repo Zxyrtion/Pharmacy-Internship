@@ -76,25 +76,25 @@ function createUserSession($user) {
 function redirectByRole($role) {
     switch($role) {
         case 'Customer':
-            header('Location: Users/customer/dashboard.php');
+            header('Location: /Pharmacy-Internship/Users/customer/dashboard.php');
             break;
         case 'Pharmacist':
-            header('Location: Users/pharmacist/dashboard.php');
+            header('Location: /Pharmacy-Internship/Users/pharmacist/dashboard.php');
             break;
         case 'Pharmacy Assistant':
-            header('Location: Users/assistant/dashboard.php');
+            header('Location: /Pharmacy-Internship/Users/assistant/dashboard.php');
             break;
         case 'Pharmacy Technician':
-            header('Location: Users/technician/dashboard.php');
+            header('Location: /Pharmacy-Internship/Users/technician/dashboard.php');
             break;
         case 'HR Personnel':
-            header('Location: Users/hr/dashboard.php');
+            header('Location: /Pharmacy-Internship/Users/hr/dashboard.php');
             break;
         case 'Intern':
-            header('Location: Users/intern/dashboard.php');
+            header('Location: /Pharmacy-Internship/Users/intern/dashboard.php');
             break;
         default:
-            header('Location: index.php');
+            header('Location: /Pharmacy-Internship/index.php');
             break;
     }
     exit();
