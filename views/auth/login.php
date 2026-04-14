@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = $_POST['password'];
     
     // Prepare statement to prevent SQL injection
-    $sql = "SELECT u.id, u.email, u.password, u.role_id, r.role_name 
+    $sql = "SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.role_id, r.role_name 
             FROM users u 
             JOIN roles r ON u.role_id = r.id 
             WHERE u.email = ?";

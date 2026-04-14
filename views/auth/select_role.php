@@ -24,19 +24,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Clear temporary session data
             unset($_SESSION['temp_user_id']);
             unset($_SESSION['registration_email']);
-            
-            // Get user details for session
-            $sql = "SELECT u.*, r.role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $temp_user_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            if ($result->num_rows == 1) {
-                $user = $result->fetch_assoc();
-                createUserSession($user);
-                redirectByRole($user['role_name']);
-            }
+
+            // Redirect to login
+            header('Location: login.php');
+            exit();
         }
     }
 }
@@ -316,7 +307,7 @@ if ($roles_result) {
                     
                     <div class="text-center">
                         <button type="submit" class="btn btn-continue" id="continueBtn" disabled>
-                            <i class="bi bi-check-circle"></i> Continue to Dashboard
+                            <i class="bi bi-check-circle"></i> Continue to Login
                         </button>
                     </div>
                 </form>

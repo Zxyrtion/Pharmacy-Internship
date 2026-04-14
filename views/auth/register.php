@@ -88,7 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $user_id = $stmt->insert_id;
             $_SESSION['temp_user_id'] = $user_id;
             $_SESSION['registration_email'] = $email;
-            header('Location: ../select_role.php');
+            header('Location: select_role.php');
             exit();
         } else {
             $errors[] = "Registration failed. Please try again.";
