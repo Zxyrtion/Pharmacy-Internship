@@ -13,27 +13,9 @@ if ($_SESSION['role_name'] !== 'Intern') {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id   = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
-$email = $_SESSION['email'];
-
-// Ensure notifications table exists (in case intern visits first)
-$conn->query("CREATE TABLE IF NOT EXISTS `notifications` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `user_id` INT(11) NOT NULL,
-    `title` VARCHAR(255) NOT NULL,
-    `message` TEXT NOT NULL,
-    `link` VARCHAR(500) DEFAULT NULL,
-    `is_read` TINYINT(1) NOT NULL DEFAULT 0,
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    KEY `idx_notifications_user_id` (`user_id`),
-    KEY `idx_notifications_is_read` (`is_read`),
-    CONSTRAINT `fk_notifications_user`
-        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+$email     = $_SESSION['email'];
 
 $unread_count = 0;
 $latest_notifications = [];
@@ -191,7 +173,7 @@ if ($list_stmt) {
                         <i class="bi bi-clipboard-check feature-icon"></i>
                         <h4>Tasks</h4>
                         <p>Complete assigned tasks</p>
-                        <button class="btn btn-primary">View Tasks</button>
+                        <a class="btn btn-primary" href="tasks.php">View Tasks</a>
                     </div>
                 </div>
                 
@@ -208,8 +190,8 @@ if ($list_stmt) {
             <div class="dashboard-card">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <h3 class="mb-0"><i class="bi bi-bell"></i> Notifications</h3>
-                    <a href="reports.php" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-clipboard-data"></i> View HR Reports
+                    <a href="tasks.php" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-clipboard-check"></i> View Tasks
                         <?php if ($unread_count > 0): ?>
                             <span class="badge bg-danger ms-1"><?php echo (int)$unread_count; ?></span>
                         <?php endif; ?>
@@ -222,7 +204,7 @@ if ($list_stmt) {
                     <div class="list-group">
                         <?php foreach ($latest_notifications as $n): ?>
                             <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
-                               href="<?php echo htmlspecialchars($n['link'] ?: 'reports.php'); ?>">
+                               href="<?php echo htmlspecialchars($n['link'] ?: 'tasks.php'); ?>">
                                 <div class="me-3">
                                     <div class="fw-semibold">
                                         <?php echo htmlspecialchars($n['title']); ?>

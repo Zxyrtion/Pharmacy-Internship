@@ -121,7 +121,7 @@ $email = $_SESSION['email'];
                         <i class="bi bi-person-plus feature-icon"></i>
                         <h4>Employees</h4>
                         <p>Manage employee records</p>
-                        <button class="btn btn-primary">View All</button>
+                        <a href="employees.php" class="btn btn-primary">View All</a>
                     </div>
                 </div>
                 
@@ -147,8 +147,8 @@ $email = $_SESSION['email'];
                     <div class="feature-card">
                         <i class="bi bi-clipboard-data feature-icon"></i>
                         <h4>Reports</h4>
-                        <p>View HR analytics</p>
-                        <a href="reports.php" class="btn btn-primary">Analytics</a>
+                        <p>Assign duties and monitor tasks</p>
+                        <button class="btn btn-primary" type="button" disabled>Analytics</button>
                     </div>
                 </div>
             </div>
