@@ -17,7 +17,9 @@ if ($conn->connect_error) {
 $conn->set_charset("utf8mb4");
 
 // Start session for user management
-session_start();
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Function to check if user is logged in
 function isLoggedIn() {
@@ -74,27 +76,28 @@ function createUserSession($user) {
 
 // Function to redirect based on role
 function redirectByRole($role) {
+    $base = '/Pharmacy-Internship';
     switch($role) {
         case 'Customer':
-            header('Location: Users/customer/dashboard.php');
+            header("Location: $base/Users/customer/dashboard.php");
             break;
         case 'Pharmacist':
-            header('Location: Users/pharmacist/dashboard.php');
+            header("Location: $base/Users/pharmacist/dashboard.php");
             break;
         case 'Pharmacy Assistant':
-            header('Location: Users/assistant/dashboard.php');
+            header("Location: $base/Users/assistant/dashboard.php");
             break;
         case 'Pharmacy Technician':
-            header('Location: Users/technician/dashboard.php');
+            header("Location: $base/Users/technician/dashboard.php");
             break;
         case 'HR Personnel':
-            header('Location: Users/hr/dashboard.php');
+            header("Location: $base/Users/hr/dashboard.php");
             break;
         case 'Intern':
-            header('Location: Users/intern/dashboard.php');
+            header("Location: $base/Users/intern/dashboard.php");
             break;
         default:
-            header('Location: index.php');
+            header("Location: $base/index.php");
             break;
     }
     exit();

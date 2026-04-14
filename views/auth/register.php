@@ -12,6 +12,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $first_name = trim($_POST['first_name']);
     $middle_name = trim($_POST['middle_name']);
     $last_name = trim($_POST['last_name']);
+    $birth_date = trim($_POST['birth_date']);
     $phone_number = trim($_POST['phone_number']);
     $email = trim($_POST['email']);
     $password = $_POST['password'];
@@ -24,9 +25,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Validation
     if (empty($first_name)) $errors[] = "First name is required";
     if (empty($last_name)) $errors[] = "Last name is required";
+    if (empty($birth_date)) $errors[] = "Birth date is required";
     if (empty($phone_number)) $errors[] = "Phone number is required";
     if (empty($email)) $errors[] = "Email is required";
     if (empty($password)) $errors[] = "Password is required";
+    
+    // Validate age (must be at least 18)
+    if (!empty($birth_date)) {
+        $birth_date_obj = new DateTime($birth_date);
+        $today = new DateTime();
+        $age = $today->diff($birth_date_obj)->y;
+        if ($age < 18) {
+            $errors[] = "You must be at least 18 years old to register";
+        }
+    }
     
     // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -78,17 +90,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($errors)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
-        $sql = "INSERT INTO users (first_name, middle_name, last_name, phone_number, email, password, role_id) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO users (first_name, middle_name, last_name, birth_date, phone_number, email, password, role_id) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssssssi", $first_name, $middle_name, $last_name, $phone_number, $email, $hashed_password, $role_id);
+        $stmt->bind_param("sssssssi", $first_name, $middle_name, $last_name, $birth_date, $phone_number, $email, $hashed_password, $role_id);
         
         if ($stmt->execute()) {
             $user_id = $stmt->insert_id;
             $_SESSION['temp_user_id'] = $user_id;
             $_SESSION['registration_email'] = $email;
-            header('Location: ../select_role.php');
+            header('Location: select_role.php');
             exit();
         } else {
             $errors[] = "Registration failed. Please try again.";
@@ -254,6 +266,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                            value="<?php echo isset($first_name) ? htmlspecialchars($first_name) : ''; ?>"
                                            placeholder="Enter your first name">
                                 </div>
+
+                            <div class="col-md-6">
+                                <label for="middle_name" class="form-label">Middle Name</label>
+                                <input type="text" class="form-control" id="middle_name" name="middle_name" 
+                                       value="<?php echo isset($middle_name) ? htmlspecialchars($middle_name) : ''; ?>"
+                                       placeholder="Enter your middle name (optional)">
+                            </div>
+
                                 <div class="col-md-6">
                                     <label for="last_name" class="form-label">Last Name *</label>
                                     <input type="text" class="form-control" id="last_name" name="last_name" required 
@@ -263,11 +283,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             </div>
                             
                             <div class="mb-3">
-                                <label for="middle_name" class="form-label">Middle Name</label>
-                                <input type="text" class="form-control" id="middle_name" name="middle_name" 
-                                       value="<?php echo isset($middle_name) ? htmlspecialchars($middle_name) : ''; ?>"
-                                       placeholder="Enter your middle name (optional)">
+                                <label for="birth_date" class="form-label">Birth Date *</label>
+                                <input type="date" class="form-control" id="birth_date" name="birth_date" required 
+                                       value="<?php echo isset($birth_date) ? htmlspecialchars($birth_date) : ''; ?>"
+                                       max="<?php echo date('Y-m-d'); ?>">
+                                <div class="form-text">You must be at least 18 years old to register</div>
                             </div>
+                            
                             
                             <div class="mb-3">
                                 <label for="phone_number" class="form-label">Phone Number *</label>
