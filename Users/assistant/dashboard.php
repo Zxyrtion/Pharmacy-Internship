@@ -252,6 +252,28 @@ $recent_stock_logs = $inventory->getStockLogs(null, 10);
                 </div>
             </div>
             
+            <!-- Process 16 & 17: Product Availability Check and Dispensing -->
+            <div class="row mt-4 mb-4">
+                <div class="col-md-12">
+                    <div style="background: linear-gradient(135deg, #27ae60, #229954); border-radius: 15px; padding: 2rem; color: white;">
+                        <h3><i class="bi bi-box-seam"></i> Check Availability & Dispense Products</h3>
+                        <p>Check medicine availability in inventory and record product dispensing to customers</p>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <a href="dispense_product.php" class="btn btn-light btn-lg">
+                                    <i class="bi bi-download"></i> Dispense Product
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="product_logs.php" class="btn btn-light btn-lg">
+                                    <i class="bi bi-file-earmark-text"></i> View Product Logs & Reports
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Pending Prescriptions Section -->
             <div class="dashboard-card">
                 <h3><i class="bi bi-file-medical"></i> Pending Prescriptions</h3>

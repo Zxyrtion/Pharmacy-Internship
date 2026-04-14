@@ -165,6 +165,17 @@ $po_stats = $purchaseOrder->getPurchaseOrderStats();
                 
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
+                        <i class="bi bi-download feature-icon"></i>
+                        <h4>Dispense Product</h4>
+                        <p>Check availability and dispense medications</p>
+                        <a href="dispense_product.php" class="btn btn-primary">
+                            <i class="bi bi-download"></i> Dispense
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
                         <i class="bi bi-file-plus feature-icon"></i>
                         <h4>Create Requisition</h4>
                         <p>Generate new requisition</p>
