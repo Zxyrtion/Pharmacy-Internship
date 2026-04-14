@@ -38,7 +38,8 @@ $so->execute();
 $order = $so->get_result()->fetch_assoc();
 
 $si = $conn->prepare("SELECT * FROM purchase_order_items WHERE order_id=?");
-$si->bind_param('i', $order['id'] ?? 0);
+$order_id_val = (int)($order['id'] ?? 0);
+$si->bind_param('i', $order_id_val);
 $si->execute();
 $order_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -186,13 +187,11 @@ $cancelled = isset($_GET['cancelled']);
                 <div class="total-box mb-4 text-center">
                     Total Amount Due: ₱<?= number_format($amount_due, 2) ?>
                 </div>
-                <p class="text-center text-muted mb-3">Accepted payment methods:</p>
+                <p class="text-center text-muted mb-3">Payment method:</p>
                 <div class="text-center mb-4">
-                    <span class="badge bg-light text-dark border me-2 px-3 py-2 fs-6"><i class="bi bi-phone"></i> GCash</span>
-                    <span class="badge bg-light text-dark border me-2 px-3 py-2 fs-6"><i class="bi bi-phone"></i> Maya</span>
-                    <span class="badge bg-light text-dark border me-2 px-3 py-2 fs-6"><i class="bi bi-credit-card"></i> Card</span>
-                    <span class="badge bg-light text-dark border me-2 px-3 py-2 fs-6"><i class="bi bi-bag"></i> GrabPay</span>
-                    <span class="badge bg-light text-dark border px-3 py-2 fs-6"><i class="bi bi-qr-code"></i> QRPh</span>
+                    <span class="badge bg-success px-4 py-3 fs-5">
+                        <i class="bi bi-phone"></i> GCash
+                    </span>
                 </div>
                 <form method="POST">
                     <button type="submit" name="pay_paymongo" value="1" class="pay-btn">

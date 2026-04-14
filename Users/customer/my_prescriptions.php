@@ -26,9 +26,9 @@ $prescriptions = $s->get_result()->fetch_all(MYSQLI_ASSOC);
         .page-card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 2rem; margin-top: 1.5rem; }
         .badge-pending    { background:#ffc107; color:#000; }
         .badge-processing { background:#0dcaf0; color:#000; }
-        .badge-ready      { background:#198754; }
-        .badge-dispensed  { background:#6f42c1; }
-        .badge-cancelled  { background:#dc3545; }
+        .badge-ready      { background:#198754; color:#fff; }
+        .badge-dispensed  { background:#6c757d; color:#fff; }
+        .badge-cancelled  { background:#dc3545; color:#fff; }
     </style>
 </head>
 <body>

@@ -223,7 +223,7 @@ $ready_count = $sp->get_result()->fetch_assoc()['cnt'];
                                     'Pending'    => 'warning text-dark',
                                     'Processing' => 'info text-dark',
                                     'Ready'      => 'success',
-                                    'Dispensed'  => 'purple',
+                                    'Dispensed'  => 'secondary',
                                     default      => 'secondary'
                                 };
                             ?>
