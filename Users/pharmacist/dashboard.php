@@ -11,7 +11,7 @@ if (!isLoggedIn()) {
 
 // Check if user has correct role
 if ($_SESSION['role_name'] !== 'Pharmacist') {
-    header('Location: ../index.php');
+    header('Location: /Pharmacy-Internship/index.php');
     exit();
 }
 
@@ -111,7 +111,7 @@ $po_stats = $purchaseOrder->getPurchaseOrderStats();
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="../index.php">
+            <a class="navbar-brand" href="/Pharmacy-Internship/index.php">
                 <i class="bi bi-hospital"></i> MediCare Pharmacy
             </a>
             
@@ -174,6 +174,7 @@ $po_stats = $purchaseOrder->getPurchaseOrderStats();
                     </div>
                 </div>
                 
+                <!-- Process 13: Check stock requisition -->
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-clipboard-check feature-icon"></i>
@@ -194,6 +195,8 @@ $po_stats = $purchaseOrder->getPurchaseOrderStats();
                     </div>
                 </div>
             </div>
+            
+
             
             <div class="dashboard-card">
                 <h3><i class="bi bi-clock-history"></i> Recent Prescriptions</h3>
@@ -223,7 +226,7 @@ $po_stats = $purchaseOrder->getPurchaseOrderStats();
                                                 'Pending'    => 'bg-warning',
                                                 'Processing' => 'bg-info',
                                                 'Ready'      => 'bg-success',
-                                                'Dispensed'  => 'bg-purple',
+                                                'Dispensed'  => 'bg-secondary',
                                                 'Cancelled'  => 'bg-danger',
                                                 default      => 'bg-secondary'
                                             };

@@ -23,6 +23,9 @@ $email = $_SESSION['email'];
 $prescription = new Prescription($conn);
 $inventory = new Inventory($conn);
 
+// Ensure stock_logs table exists before querying
+$inventory->createStockLogsTable();
+
 // Get data for dashboard
 $pending_prescriptions = $prescription->getPendingPrescriptions();
 $prescription_stats = $prescription->getPrescriptionStats();
@@ -107,7 +110,7 @@ $recent_stock_logs = $inventory->getStockLogs(null, 10);
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="../../index.php">
+            <a class="navbar-brand" href="dashboard.php">
                 <i class="bi bi-hospital"></i> MediCare Pharmacy
             </a>
             
@@ -195,7 +198,7 @@ $recent_stock_logs = $inventory->getStockLogs(null, 10);
                         <i class="bi bi-people feature-icon"></i>
                         <h4>Customer Service</h4>
                         <p>Assist customers with inquiries</p>
-                        <button class="btn btn-primary" onclick="showCustomerService()">Help Desk</button>
+                        <a href="customer_service.php" class="btn btn-primary">Help Desk</a>
                     </div>
                 </div>
                 
@@ -213,7 +216,7 @@ $recent_stock_logs = $inventory->getStockLogs(null, 10);
                         <i class="bi bi-receipt feature-icon"></i>
                         <h4>Order Processing</h4>
                         <p>Process customer orders</p>
-                        <button class="btn btn-primary" onclick="showOrders()">View Orders</button>
+                        <a href="order_processing.php" class="btn btn-primary">View Orders</a>
                     </div>
                 </div>
                 
@@ -222,7 +225,29 @@ $recent_stock_logs = $inventory->getStockLogs(null, 10);
                         <i class="bi bi-telephone feature-icon"></i>
                         <h4>Phone Support</h4>
                         <p>Handle customer calls</p>
-                        <button class="btn btn-primary" onclick="showCallCenter()">Call Center</button>
+                        <a href="call_center.php" class="btn btn-primary">Call Center</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Process 16 & 17: Product Availability Check and Dispensing -->
+            <div class="row mt-4 mb-4">
+                <div class="col-md-12">
+                    <div style="background: linear-gradient(135deg, #27ae60, #229954); border-radius: 15px; padding: 2rem; color: white;">
+                        <h3><i class="bi bi-box-seam"></i> Check Availability & Dispense Products</h3>
+                        <p>Check medicine availability in inventory and record product dispensing to customers</p>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <a href="dispense_product.php" class="btn btn-light btn-lg">
+                                    <i class="bi bi-download"></i> Dispense Product
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="product_logs.php" class="btn btn-light btn-lg">
+                                    <i class="bi bi-file-earmark-text"></i> View Product Logs & Reports
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -234,25 +259,23 @@ $recent_stock_logs = $inventory->getStockLogs(null, 10);
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Prescription ID</th>
+                                <th>#</th>
                                 <th>Patient</th>
-                                <th>Medicine</th>
+                                <th>Doctor</th>
                                 <th>Date</th>
-                                <th>Action</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (!empty($pending_prescriptions)): ?>
                                 <?php foreach (array_slice($pending_prescriptions, 0, 5) as $presc): ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($presc['prescription_id']); ?></td>
+                                        <td>#<?php echo htmlspecialchars($presc['id']); ?></td>
                                         <td><?php echo htmlspecialchars($presc['patient_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($presc['medicine_name'] . ' ' . $presc['dosage']); ?></td>
-                                        <td><?php echo htmlspecialchars($presc['date_prescribed']); ?></td>
+                                        <td><?php echo htmlspecialchars($presc['doctor_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($presc['prescription_date'] ?? $presc['created_at']); ?></td>
                                         <td>
-                                            <button class="btn btn-sm btn-info" onclick="viewPrescription('<?php echo urlencode($presc['prescription_id']); ?>')">
-                                                <i class="bi bi-eye"></i> View
-                                            </button>
+                                            <span class="badge bg-warning"><?php echo htmlspecialchars($presc['status']); ?></span>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

@@ -165,28 +165,20 @@ class PurchaseOrder {
     
     // Get requisition statistics
     public function getRequisitionStats() {
-        $stats = [];
-        
-        // Total requisitions
-        $sql = "SELECT COUNT(*) as total FROM requisitions";
-        $result = $this->conn->query($sql);
-        $stats['total'] = $result->fetch_assoc()['total'];
-        
-        // Pending requisitions
-        $sql = "SELECT COUNT(*) as pending FROM requisitions WHERE status = 'Submitted'";
-        $result = $this->conn->query($sql);
-        $stats['pending'] = $result->fetch_assoc()['pending'];
-        
-        // Approved requisitions
-        $sql = "SELECT COUNT(*) as approved FROM requisitions WHERE status = 'Approved'";
-        $result = $this->conn->query($sql);
-        $stats['approved'] = $result->fetch_assoc()['approved'];
-        
-        // Processed requisitions
-        $sql = "SELECT COUNT(*) as processed FROM requisitions WHERE status = 'Processed'";
-        $result = $this->conn->query($sql);
-        $stats['processed'] = $result->fetch_assoc()['processed'];
-        
+        $stats = ['total' => 0, 'pending' => 0, 'approved' => 0, 'processed' => 0];
+
+        $r = $this->conn->query("SELECT COUNT(*) as total FROM requisitions");
+        if ($r) $stats['total'] = $r->fetch_assoc()['total'];
+
+        $r = $this->conn->query("SELECT COUNT(*) as pending FROM requisitions WHERE status = 'Submitted'");
+        if ($r) $stats['pending'] = $r->fetch_assoc()['pending'];
+
+        $r = $this->conn->query("SELECT COUNT(*) as approved FROM requisitions WHERE status = 'Approved'");
+        if ($r) $stats['approved'] = $r->fetch_assoc()['approved'];
+
+        $r = $this->conn->query("SELECT COUNT(*) as processed FROM requisitions WHERE status = 'Processed'");
+        if ($r) $stats['processed'] = $r->fetch_assoc()['processed'];
+
         return $stats;
     }
     
@@ -300,23 +292,17 @@ class PurchaseOrder {
 
     // Get purchase order statistics
     public function getPurchaseOrderStats() {
-        $stats = [];
-        
-        // Total purchase orders
-        $sql = "SELECT COUNT(*) as total FROM purchase_orders";
-        $result = $this->conn->query($sql);
-        $stats['total'] = $result->fetch_assoc()['total'];
-        
-        // Pending purchase orders
-        $sql = "SELECT COUNT(*) as pending FROM purchase_orders WHERE status = 'Pending'";
-        $result = $this->conn->query($sql);
-        $stats['pending'] = $result->fetch_assoc()['pending'];
-        
-        // Delivered purchase orders
-        $sql = "SELECT COUNT(*) as delivered FROM purchase_orders WHERE status = 'Delivered'";
-        $result = $this->conn->query($sql);
-        $stats['delivered'] = $result->fetch_assoc()['delivered'];
-        
+        $stats = ['total' => 0, 'pending' => 0, 'delivered' => 0];
+
+        $r = $this->conn->query("SELECT COUNT(*) as total FROM purchase_orders");
+        if ($r) $stats['total'] = $r->fetch_assoc()['total'];
+
+        $r = $this->conn->query("SELECT COUNT(*) as pending FROM purchase_orders WHERE status = 'Pending'");
+        if ($r) $stats['pending'] = $r->fetch_assoc()['pending'];
+
+        $r = $this->conn->query("SELECT COUNT(*) as delivered FROM purchase_orders WHERE status = 'Delivered'");
+        if ($r) $stats['delivered'] = $r->fetch_assoc()['delivered'];
+
         return $stats;
     }
 }

@@ -9,7 +9,7 @@ if (!isLoggedIn()) {
 
 // Check if user has correct role
 if ($_SESSION['role_name'] !== 'Pharmacy Technician') {
-    header('Location: ../index.php');
+    header('Location: /Pharmacy-Internship/index.php');
     exit();
 }
 
@@ -93,7 +93,7 @@ $email = $_SESSION['email'];
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="../index.php">
+            <a class="navbar-brand" href="/Pharmacy-Internship/index.php">
                 <i class="bi bi-hospital"></i> MediCare Pharmacy
             </a>
             
@@ -116,6 +116,7 @@ $email = $_SESSION['email'];
             </div>
             
             <div class="row">
+                <!-- Process 11: Check inventory report -->
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-capsule feature-icon"></i>
@@ -124,16 +125,17 @@ $email = $_SESSION['email'];
                         <button class="btn btn-primary">View Queue</button>
                     </div>
                 </div>
-                
+
+                <!-- Process 12: Request additional stocks -->
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-box-seam feature-icon"></i>
-                        <h4>Inventory</h4>
-                        <p>Manage stock and supplies</p>
-                        <button class="btn btn-primary">Manage</button>
+                        <h4>Request Stocks</h4>
+                        <p>Request additional stock supplies</p>
+                        <a href="../../Users/pharmacist/create_requisition.php" class="btn btn-primary">Request</a>
                     </div>
                 </div>
-                
+
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-clipboard-check feature-icon"></i>
@@ -142,7 +144,7 @@ $email = $_SESSION['email'];
                         <button class="btn btn-primary">Check</button>
                     </div>
                 </div>
-                
+
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-graph-up feature-icon"></i>

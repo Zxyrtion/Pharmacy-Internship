@@ -275,13 +275,6 @@ CREATE TABLE IF NOT EXISTS `medicines` (
 -- Sample medicines data
 --
 
-INSERT IGNORE INTO `medicines` (`medicine_name`, `dosage`, `description`, `category`, `unit_price`, `stock_quantity`, `reorder_level`) VALUES
-('Paracetamol', '500mg', 'Pain reliever and fever reducer', 'Analgesic', 15.50, 100, 20),
-('Amoxicillin', '250mg', 'Antibiotic for bacterial infections', 'Antibiotic', 45.75, 50, 15),
-('Ibuprofen', '400mg', 'Anti-inflammatory pain reliever', 'Analgesic', 25.00, 75, 20),
-('Loperamide', '2mg', 'Anti-diarrheal medication', 'Gastrointestinal', 35.25, 30, 10),
-('Salbutamol', '100mcg', 'Bronchodilator for asthma', 'Respiratory', 120.00, 25, 10);
-
 -- --------------------------------------------------------
 
 --
@@ -433,4 +426,31 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Product Logs Table (Process 17 - Dispensing by Assistant)
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `product_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `prescription_id` int(11) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `medicine_name` varchar(200) NOT NULL,
+  `generic_name` varchar(200) DEFAULT NULL,
+  `quantity` int(11) NOT NULL DEFAULT 1,
+  `unit_price` decimal(10,2) DEFAULT 0.00,
+  `total_price` decimal(10,2) DEFAULT 0.00,
+  `sig` varchar(300) DEFAULT NULL,
+  `pharmacist_id` int(11) NOT NULL,
+  `patient_name` varchar(200) DEFAULT NULL,
+  `doctor_name` varchar(200) DEFAULT NULL,
+  `log_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `prescription_id` (`prescription_id`),
+  KEY `order_id` (`order_id`),
+  KEY `pharmacist_id` (`pharmacist_id`),
+  KEY `log_date` (`log_date`),
+  CONSTRAINT `product_logs_ibfk_1` FOREIGN KEY (`prescription_id`) REFERENCES `prescriptions` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `product_logs_ibfk_2` FOREIGN KEY (`pharmacist_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -9,7 +9,7 @@ if (!isLoggedIn()) {
 
 // Check if user has correct role
 if ($_SESSION['role_name'] !== 'Customer') {
-    header('Location: ../index.php');
+    header('Location: /Pharmacy-Internship/index.php');
     exit();
 }
 
@@ -128,7 +128,7 @@ $ready_count = $sp->get_result()->fetch_assoc()['cnt'];
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="../index.php">
+            <a class="navbar-brand" href="/Pharmacy-Internship/index.php">
                 <i class="bi bi-hospital"></i> MediCare Pharmacy
             </a>
             

@@ -10,7 +10,7 @@ if (!isLoggedIn()) {
 
 // Check if user has correct role
 if ($_SESSION['role_name'] !== 'Pharmacist') {
-    header('Location: ../index.php');
+    header('Location: /Pharmacy-Internship/index.php');
     exit();
 }
 

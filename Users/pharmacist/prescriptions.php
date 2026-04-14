@@ -67,17 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_order'])) {
     }
 }
 
-// Handle dispense
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dispense'])) {
-    $rx_id = (int)$_POST['prescription_id'];
-    $conn->prepare("UPDATE prescriptions SET status='Ready' WHERE id=?")->bind_param('i', $rx_id);
-    $upd = $conn->prepare("UPDATE prescriptions SET status='Ready' WHERE id=?");
-    $upd->bind_param('i', $rx_id); $upd->execute();
-    $upd2 = $conn->prepare("UPDATE purchase_orders SET status='Dispensed' WHERE prescription_id=?");
-    $upd2->bind_param('i', $rx_id); $upd2->execute();
-    $success = 'Prescription #' . $rx_id . ' marked as Ready for customer payment.';
-}
-
 // Filter
 $filter = $_GET['status'] ?? 'Pending';
 if (!in_array($filter, ['Pending','Processing','Ready','Dispensed','All'])) $filter = 'Pending';
@@ -297,19 +286,8 @@ if (isset($_GET['view'])) {
         </div>
         <p class="validity-note">This prescription is valid for THREE (3) MONTHS from the date of issue.</p>
 
-        <div class="card mt-3 border-success no-print">
-            <div class="card-header bg-success text-white fw-semibold">
-                <i class="bi bi-bag-check"></i> Dispense Medicines
-            </div>
-            <div class="card-body">
-                <p>Confirm all medicines are prepared and ready for the customer.</p>
-                <form method="POST">
-                    <input type="hidden" name="prescription_id" value="<?= $view_rx['id'] ?>">
-                    <button type="submit" name="dispense" value="1" class="btn btn-success px-4">
-                        <i class="bi bi-check-circle"></i> Mark as Dispensed / Ready for Pickup
-                    </button>
-                </form>
-            </div>
+        <div class="alert alert-info no-print mt-3">
+            <i class="bi bi-info-circle"></i> Purchase order confirmed. The <strong>Pharmacy Assistant</strong> will dispense the medicines and mark it as Ready for customer payment.
         </div>
 
         <?php elseif (in_array($view_rx['status'], ['Ready','Dispensed'])): ?>
