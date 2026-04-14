@@ -43,6 +43,58 @@ class Prescription {
         return $stmt->execute();
     }
     
+    // Check product availability (Process 16)
+    public function checkProductAvailability($medicine_name, $dosage, $quantity_needed) {
+        $medicine = $this->getMedicineDetails($medicine_name, $dosage);
+        
+        if (!$medicine) {
+            return [
+                'available' => false,
+                'status' => 'Not Found',
+                'reason' => 'Medicine not found in inventory'
+            ];
+        }
+        
+        if ($medicine['stock_quantity'] <= 0) {
+            return [
+                'available' => false,
+                'status' => 'Out of Stock',
+                'stock' => 0,
+                'needed' => $quantity_needed,
+                'reason' => 'Product is completely out of stock'
+            ];
+        }
+        
+        if ($medicine['stock_quantity'] < $quantity_needed) {
+            return [
+                'available' => true,
+                'partial' => true,
+                'status' => 'Partial Stock',
+                'stock' => $medicine['stock_quantity'],
+                'needed' => $quantity_needed,
+                'reason' => 'Only ' . $medicine['stock_quantity'] . ' units available, but ' . $quantity_needed . ' requested'
+            ];
+        }
+        
+        return [
+            'available' => true,
+            'partial' => false,
+            'status' => 'Available',
+            'stock' => $medicine['stock_quantity'],
+            'needed' => $quantity_needed,
+            'price' => $medicine['unit_price'],
+            'medicine' => $medicine,
+            'reason' => 'Sufficient stock available'
+        ];
+    }
+    
+    // Get product availability view
+    public function getProductAvailability() {
+        $sql = "SELECT * FROM product_availability ORDER BY stock_level DESC, medicine_name";
+        $result = $this->conn->query($sql);
+        return $result->fetch_all(MYSQLI_ASSOC);
+    }
+    
     // Generate order from prescription
     public function generateOrder($prescription_id, $pharmacist_id) {
         // Get prescription details
@@ -50,6 +102,16 @@ class Prescription {
         
         if (!$prescription) {
             return false;
+        }
+        
+        // Check product availability first (Process 16)
+        $availability = $this->checkProductAvailability($prescription['medicine_name'], $prescription['dosage'], $prescription['quantity']);
+        
+        if (!$availability['available']) {
+            return [
+                'success' => false,
+                'error' => 'Product not available: ' . $availability['reason']
+            ];
         }
         
         // Get medicine details for pricing
