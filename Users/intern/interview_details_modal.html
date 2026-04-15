@@ -1,0 +1,128 @@
+<!-- Interview Details Modal -->
+<div class="modal fade" id="interviewDetailsModal" tabindex="-1" aria-labelledby="interviewDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title" id="interviewDetailsModalLabel">
+                    <i class="bi bi-calendar-event"></i> Interview Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-check-circle-fill" style="font-size: 4rem; color: #28a745;"></i>
+                    <h4 class="mt-3">Your Interview is Scheduled!</h4>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="detail-card">
+                            <div class="detail-label">
+                                <i class="bi bi-calendar-event"></i> Interview Date
+                            </div>
+                            <div class="detail-value" id="modal_interview_date">
+                                Loading...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="detail-card">
+                            <div class="detail-label">
+                                <i class="bi bi-clock"></i> Interview Time
+                            </div>
+                            <div class="detail-value" id="modal_interview_time">
+                                Loading...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-card mb-3">
+                    <div class="detail-label">
+                        <i class="bi bi-type"></i> Interview Type
+                    </div>
+                    <div class="detail-value" id="modal_interview_type">
+                        Loading...
+                    </div>
+                </div>
+                
+                <!-- Personal Interview Location -->
+                <div id="modal_location_section" class="detail-card mb-3" style="display: none;">
+                    <div class="detail-label">
+                        <i class="bi bi-geo-alt-fill"></i> Location
+                    </div>
+                    <div class="detail-value" id="modal_interview_location">
+                        Loading...
+                    </div>
+                </div>
+                
+                <!-- Online Interview Link -->
+                <div id="modal_online_section" class="detail-card mb-3" style="display: none;">
+                    <div class="detail-label">
+                        <i class="bi bi-link-45deg"></i> Meeting Link
+                    </div>
+                    <div class="detail-value">
+                        <a href="#" id="modal_meeting_link" target="_blank" class="btn btn-success">
+                            <i class="bi bi-box-arrow-up-right"></i> Join Meeting
+                        </a>
+                        <p class="mt-2 small text-muted" id="modal_meeting_link_text">
+                            Loading...
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Additional Notes -->
+                <div id="modal_notes_section" class="detail-card mb-3" style="display: none;">
+                    <div class="detail-label">
+                        <i class="bi bi-sticky"></i> Additional Notes
+                    </div>
+                    <div class="detail-value" id="modal_interview_notes">
+                        Loading...
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Important Reminders:</h6>
+                    <ul class="mb-0 small">
+                        <li>Please arrive 10 minutes early for personal interviews</li>
+                        <li>Bring a valid ID and your application documents</li>
+                        <li>Dress professionally</li>
+                        <li id="online_reminder" style="display: none;">Test your internet connection and camera before the interview</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="view_interview.php" class="btn btn-primary">
+                    <i class="bi bi-eye"></i> View Full Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.detail-card {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 1.5rem;
+    border-left: 4px solid #667eea;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.detail-value {
+    font-size: 1.125rem;
+    color: #212529;
+    font-weight: 500;
+}
+</style>
+
+<script src="interview_modal_handler.js"></script>
