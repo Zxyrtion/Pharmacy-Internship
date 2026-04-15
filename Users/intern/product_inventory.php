@@ -43,37 +43,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $product_ids = $_POST['product_id'] ?? [];
         $product_names = $_POST['product_name'] ?? [];
         $quantities = $_POST['quantity'] ?? [];
+        $new_product_names = $_POST['new_product_name'] ?? [];
+        $new_descriptions = $_POST['new_description'] ?? [];
+        $new_prices = $_POST['new_price'] ?? [];
         
         $ins_stmt = $conn->prepare("INSERT INTO product_inventory (intern_id, product_name, description, quantity, price, total_price) VALUES (?, ?, ?, ?, ?, ?)");
         $upd_stmt = $conn->prepare("UPDATE product_inventory SET quantity=?, total_price=? WHERE id=? AND intern_id=?");
         
+        // Process ALL medicines (both predefined and new)
+        $predefined_count = count($medicines);
+        
         for ($i = 0; $i < count($product_names); $i++) {
             $p_name = $product_names[$i];
-            
-            // Validate against predefined array to prevent injection
-            if (!isset($medicines[$p_name])) continue;
-            
             $p_id = $product_ids[$i] ?? '';
             $qty = (int)($quantities[$i] ?? 0);
             
-            // Only force insert if qty > 0 OR if it already exists (update)
-            $desc = $medicines[$p_name]['desc'];
-            $prc = (float)$medicines[$p_name]['price'];
+            // Skip if quantity is 0 (don't save empty entries)
+            if ($qty <= 0) continue;
+            
+            // Check if this is a predefined medicine
+            if (isset($medicines[$p_name])) {
+                // Predefined medicine - get data from array
+                $desc = $medicines[$p_name]['desc'];
+                $prc = (float)$medicines[$p_name]['price'];
+                $tot = $qty * $prc;
+                
+                if (!empty($p_id)) {
+                    // UPDATE existing predefined medicine
+                    if ($upd_stmt) {
+                        $pid_int = (int)$p_id;
+                        $upd_stmt->bind_param("idii", $qty, $tot, $pid_int, $user_id);
+                        $upd_stmt->execute();
+                    }
+                } else {
+                    // INSERT new predefined medicine (first time saving)
+                    if ($ins_stmt) {
+                        $ins_stmt->bind_param("issidd", $user_id, $p_name, $desc, $qty, $prc, $tot);
+                        $ins_stmt->execute();
+                    }
+                }
+            }
+        }
+        
+        // Process new custom medicines added dynamically
+        for ($i = 0; $i < count($new_product_names); $i++) {
+            $p_name = $new_product_names[$i];
+            $desc = $new_descriptions[$i] ?? 'Custom medicine';
+            $prc = (float)($new_prices[$i] ?? 0.00);
+            
+            // New medicines are at the end of the quantities array
+            $qty_index = $predefined_count + $i;
+            $qty = (int)($quantities[$qty_index] ?? 0);
+            
             $tot = $qty * $prc;
-
-            if (!empty($p_id)) {
-                // Update existing
-                if ($upd_stmt) {
-                    $pid_int = (int)$p_id;
-                    $upd_stmt->bind_param("idii", $qty, $tot, $pid_int, $user_id);
-                    $upd_stmt->execute();
-                }
-            } else {
-                // Insert new ONLY if quantity is > 0 to save database space
-                if ($qty > 0 && $ins_stmt) {
-                    $ins_stmt->bind_param("issidd", $user_id, $p_name, $desc, $qty, $prc, $tot);
-                    $ins_stmt->execute();
-                }
+            
+            // Insert new medicine ONLY if it has a name and quantity > 0
+            if (!empty($p_name) && $qty > 0 && $ins_stmt) {
+                $ins_stmt->bind_param("issidd", $user_id, $p_name, $desc, $qty, $prc, $tot);
+                $ins_stmt->execute();
             }
         }
         
@@ -241,7 +268,10 @@ if (isset($conn)) {
                     </table>
                 </div>
                 
-                <div class="d-flex justify-content-end mt-3">
+                <div class="d-flex justify-content-between mt-3">
+                    <button type="button" class="btn btn-success px-4 py-2 fw-bold shadow-sm" id="addNewMedicineBtn">
+                        <i class="bi bi-plus-circle"></i> Add New Medicine
+                    </button>
                     <button type="submit" class="btn btn-primary px-5 py-2 fw-bold shadow-sm">
                         <i class="bi bi-save"></i> Save All Inventory
                     </button>
@@ -255,17 +285,28 @@ if (isset($conn)) {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const tableBody = document.querySelector('#inventoryTable tbody');
+            const addNewMedicineBtn = document.getElementById('addNewMedicineBtn');
+            let newMedicineCounter = 1;
 
             function calculateTotals() {
                 const rows = tableBody.querySelectorAll('tr');
                 rows.forEach(row => {
                     const qtyInput = row.querySelector('.quantity-input');
+                    const priceInput = row.querySelector('.price-input');
                     const priceSpan = row.querySelector('.price-val');
                     const totalSpan = row.querySelector('.total-val');
                     
-                    if (qtyInput && priceSpan && totalSpan) {
+                    if (qtyInput && totalSpan) {
                         const qty = parseInt(qtyInput.value) || 0;
-                        const price = parseFloat(priceSpan.textContent) || 0;
+                        let price = 0;
+                        
+                        // Check if price comes from input (new rows) or span (existing rows)
+                        if (priceInput) {
+                            price = parseFloat(priceInput.value) || 0;
+                        } else if (priceSpan) {
+                            price = parseFloat(priceSpan.textContent) || 0;
+                        }
+                        
                         totalSpan.textContent = (qty * price).toFixed(2);
                     }
                 });
@@ -273,11 +314,43 @@ if (isset($conn)) {
 
             // Calculate when quantity inputs change
             tableBody.addEventListener('input', function(e) {
-                if (e.target.classList.contains('quantity-input')) {
+                if (e.target.classList.contains('quantity-input') || e.target.classList.contains('price-input')) {
                     // Prevent negative numbers entirely by clamping
                     if (e.target.value < 0) e.target.value = 0;
                     calculateTotals();
                 }
+            });
+
+            // Add new medicine row
+            addNewMedicineBtn.addEventListener('click', function() {
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>
+                        <input type="hidden" name="product_id[]" value="">
+                        <input type="hidden" name="product_name[]" value="New Medicine ${newMedicineCounter}">
+                        <input type="text" class="form-control" name="new_product_name[]" value="New Medicine ${newMedicineCounter}" placeholder="Enter medicine name" required>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control" name="new_description[]" placeholder="Enter description" required>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control text-center quantity-input" name="quantity[]" min="0" value="0" required>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control text-center price-input" name="new_price[]" min="0" step="0.01" value="0.00" required>
+                    </td>
+                    <td class="text-end bg-light fw-bold text-success">
+                        ₱<span class="total-val">0.00</span>
+                    </td>
+                `;
+                tableBody.appendChild(newRow);
+                newMedicineCounter++;
+                
+                // Scroll to the new row
+                newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Focus on the medicine name input
+                newRow.querySelector('input[name="new_product_name[]"]').focus();
             });
         });
     </script>

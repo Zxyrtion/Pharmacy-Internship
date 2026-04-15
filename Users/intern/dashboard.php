@@ -1,5 +1,6 @@
 <?php
 require_once '../../config.php';
+require_once '../../notification_helper.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {
@@ -98,6 +99,10 @@ $email = $_SESSION['email'];
             </a>
             
             <div class="navbar-nav ms-auto">
+                <?php
+                require_once '../../notification_display.php';
+                displayNotificationDropdown($user_id);
+                ?>
                 <span class="navbar-text me-3">
                     <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($full_name); ?>
                 </span>

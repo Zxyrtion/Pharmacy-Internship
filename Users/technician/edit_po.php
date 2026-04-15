@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Update PO header
         $stmt = $conn->prepare("UPDATE requisition_reports SET po_number = ?, po_date = ?, vendor_company = ?, vendor_contact = ?, vendor_address = ?, vendor_phone = ?, vendor_fax = ?, shipto_name = ?, shipto_company = ?, shipto_address = ?, shipto_phone = ?, requisitioner = ?, ship_via = ?, fob = ?, shipping_terms = ?, subtotal = ?, tax = ?, shipping = ?, other_costs = ?, total = ?, comments = ? WHERE id = ?");
         
-        $stmt->bind_param("ssssssssssssssssdddsi", $po_number, $po_date, $vendor_company, $vendor_contact, $vendor_address, $vendor_phone, $vendor_fax, $shipto_name, $shipto_company, $shipto_address, $shipto_phone, $requisitioner, $ship_via, $fob, $shipping_terms, $subtotal, $tax, $shipping, $other_costs, $total, $comments, $po_id);
+        $stmt->bind_param("sssssssssssssssdddddsi", $po_number, $po_date, $vendor_company, $vendor_contact, $vendor_address, $vendor_phone, $vendor_fax, $shipto_name, $shipto_company, $shipto_address, $shipto_phone, $requisitioner, $ship_via, $fob, $shipping_terms, $subtotal, $tax, $shipping, $other_costs, $total, $comments, $po_id);
         
         if ($stmt->execute()) {
             $stmt->close();

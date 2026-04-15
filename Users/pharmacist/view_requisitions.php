@@ -1,5 +1,6 @@
 <?php
 require_once '../../config.php';
+require_once '../../notification_helper.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {
@@ -14,24 +15,67 @@ if ($_SESSION['role_name'] !== 'Pharmacist') {
 }
 
 $full_name = $_SESSION['full_name'];
+$user_id = $_SESSION['user_id'];
 
-// Handle Quick Approvals
+// Handle status updates
 $success = '';
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['po_id'])) {
     $po_id = (int)$_POST['po_id'];
     $new_status = $_POST['action'] === 'approve' ? 'Approved' : 'Rejected';
+    $remarks = isset($_POST['remarks']) ? sanitizeInput($_POST['remarks']) : '';
     
     global $conn;
-    $stmt = $conn->prepare("UPDATE requisition_reports SET status = ? WHERE id = ?");
-    if ($stmt) {
-        $stmt->bind_param("si", $new_status, $po_id);
-        if ($stmt->execute()) {
-            $success = "Purchase Order #$po_id status successfully updated to $new_status.";
-        } else {
-            $error = "Failed to update PO status.";
+    
+    // Get PO details first for notification
+    $po_stmt = $conn->prepare("SELECT po_number, technician_id FROM requisition_reports WHERE id = ?");
+    $po_stmt->bind_param("i", $po_id);
+    $po_stmt->execute();
+    $po_result = $po_stmt->get_result();
+    $po_data = $po_result->fetch_assoc();
+    $po_stmt->close();
+    
+    if ($new_status === 'Rejected' && !empty($remarks)) {
+        // Update with remarks for rejection
+        $stmt = $conn->prepare("UPDATE requisition_reports SET status = ?, remarks = ? WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("ssi", $new_status, $remarks, $po_id);
+            if ($stmt->execute()) {
+                $success = "Purchase Order #$po_id has been rejected.";
+            } else {
+                $error = "Failed to update PO status.";
+            }
+            $stmt->close();
         }
-        $stmt->close();
+    } else {
+        // Update without remarks (for approval)
+        $stmt = $conn->prepare("UPDATE requisition_reports SET status = ? WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("si", $new_status, $po_id);
+            if ($stmt->execute()) {
+                $success = "Purchase Order #$po_id has been approved.";
+            } else {
+                $error = "Failed to update PO status.";
+            }
+            $stmt->close();
+        }
+    }
+    
+    // Send notification to technician
+    if ($po_data && $po_data['technician_id']) {
+        $technician_id = $po_data['technician_id'];
+        $po_number = $po_data['po_number'];
+        
+        if ($new_status === 'Approved') {
+            $message = "Your Purchase Order $po_number has been approved by $full_name.";
+            createNotification($technician_id, $message, 'success', 'purchase_order', $po_id);
+        } elseif ($new_status === 'Rejected') {
+            $message = "Your Purchase Order $po_number has been rejected by $full_name.";
+            if (!empty($remarks)) {
+                $message .= " Reason: $remarks";
+            }
+            createNotification($technician_id, $message, 'error', 'purchase_order', $po_id);
+        }
     }
 }
 
@@ -124,9 +168,18 @@ if (isset($conn)) {
                                     <span class="badge bg-success">Approved</span>
                                 <?php else: ?>
                                     <span class="badge bg-danger">Rejected</span>
+                                    <?php if(!empty($p['remarks'])): ?>
+                                        <br><small class="text-muted" data-bs-toggle="tooltip" title="<?= htmlspecialchars($p['remarks']) ?>">
+                                            <i class="bi bi-chat-left-text"></i> <?= substr(htmlspecialchars($p['remarks']), 0, 30) ?><?= strlen($p['remarks']) > 30 ? '...' : '' ?>
+                                        </small>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                             <td>
+                                <?php
+                                    // Create safe modal ID
+                                    $safe_modal_id = 'rejectPO_' . $p['id'];
+                                ?>
                                 <a href="view_po.php?id=<?= $p['id'] ?>" class="btn btn-sm btn-info text-white me-1" title="View Details">
                                     <i class="bi bi-eye"></i> View
                                 </a>
@@ -134,20 +187,67 @@ if (isset($conn)) {
                                     <form method="POST" class="d-inline">
                                         <input type="hidden" name="po_id" value="<?= $p['id'] ?>">
                                         <input type="hidden" name="action" value="approve">
-                                        <button type="submit" class="btn btn-sm btn-success" title="Approve PO">
+                                        <button type="submit" class="btn btn-sm btn-success me-1" title="Approve PO">
                                             <i class="bi bi-check-lg"></i> Approve
                                         </button>
                                     </form>
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal<?= $safe_modal_id ?>" title="Reject PO">
+                                        <i class="bi bi-x-circle"></i> Reject
+                                    </button>
+                                    
+                                    <!-- Rejection Modal -->
+                                    <div class="modal fade" id="rejectModal<?= $safe_modal_id ?>" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-danger text-white">
+                                                    <h5 class="modal-title"><i class="bi bi-x-circle"></i> Reject Purchase Order</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="POST">
+                                                    <div class="modal-body">
+                                                        <input type="hidden" name="po_id" value="<?= $p['id'] ?>">
+                                                        <input type="hidden" name="action" value="reject">
+                                                        
+                                                        <div class="alert alert-light border">
+                                                            <strong>PO Number:</strong> <?= htmlspecialchars($p['po_number']) ?><br>
+                                                            <strong>Vendor:</strong> <?= htmlspecialchars($p['vendor_company']) ?><br>
+                                                            <strong>Total:</strong> ₱<?= number_format($p['total'], 2) ?>
+                                                        </div>
+                                                        
+                                                        <div class="mb-3">
+                                                            <label for="remarks<?= $safe_modal_id ?>" class="form-label fw-bold">Rejection Remarks <span class="text-danger">*</span></label>
+                                                            <textarea class="form-control" id="remarks<?= $safe_modal_id ?>" name="remarks" rows="4" placeholder="Enter reason for rejection..." required></textarea>
+                                                            <div class="form-text">Please provide a clear reason why this PO is being rejected.</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> Confirm Rejection</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="6" class="text-center text-muted">No Purchase Orders have been generated yet.</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted">No Purchase Orders have been generated yet.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
 </body>
 </html>

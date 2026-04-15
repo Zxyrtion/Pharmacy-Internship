@@ -348,60 +348,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             </table>
         </div>
 
-        <!-- Approval/Rejection Actions -->
-        <?php if (($po['status'] ?? 'pending') === 'pending'): ?>
-        <div class="card mt-4">
-            <div class="card-header bg-light">
-                <h5 class="mb-0">PO Actions</h5>
-            </div>
-            <div class="card-body">
-                <?php if (isset($_GET['approved'])): ?>
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle"></i> Purchase Order has been approved successfully!
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (isset($_GET['rejected'])): ?>
-                    <div class="alert alert-danger">
-                        <i class="bi bi-x-circle"></i> Purchase Order has been rejected.
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (isset($error)): ?>
-                    <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($error) ?>
-                    </div>
-                <?php endif; ?>
-                
-                <form method="POST" class="mb-3">
-                    <input type="hidden" name="action" value="approve">
-                    <button type="submit" class="btn btn-success btn-lg me-2" onclick="return confirm('Are you sure you want to approve this Purchase Order?')">
-                        <i class="bi bi-check-circle"></i> Approve PO
-                    </button>
-                </form>
-                
-                <form method="POST">
-                    <input type="hidden" name="action" value="reject">
-                    <div class="mb-3">
-                        <label for="rejection_reason" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3" placeholder="Please provide a reason for rejecting this Purchase Order..." required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-danger btn-lg" onclick="return confirm('Are you sure you want to reject this Purchase Order?')">
-                        <i class="bi bi-x-circle"></i> Reject PO
-                    </button>
-                </form>
-            </div>
-        </div>
-        <?php elseif (($po['status'] ?? 'pending') === 'approved'): ?>
+        <!-- Status Display Only -->
+        <?php if (($po['status'] ?? 'Pending') === 'Approved'): ?>
         <div class="alert alert-success mt-4">
             <i class="bi bi-check-circle"></i> This Purchase Order has been <strong>Approved</strong>
         </div>
-        <?php elseif (($po['status'] ?? 'pending') === 'rejected'): ?>
+        <?php elseif (($po['status'] ?? 'Pending') === 'Rejected'): ?>
         <div class="alert alert-danger mt-4">
             <i class="bi bi-x-circle"></i> This Purchase Order has been <strong>Rejected</strong>
-            <?php if (!empty($po['rejection_reason'])): ?>
-                <br><strong>Reason:</strong> <?= htmlspecialchars($po['rejection_reason']) ?>
+            <?php if (!empty($po['remarks'])): ?>
+                <br><strong>Reason:</strong> <?= htmlspecialchars($po['remarks']) ?>
             <?php endif; ?>
+        </div>
+        <?php else: ?>
+        <div class="alert alert-warning mt-4">
+            <i class="bi bi-clock"></i> This Purchase Order is <strong>Pending</strong> - awaiting pharmacist review
         </div>
         <?php endif; ?>
 

@@ -21,21 +21,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $period = sanitizeInput($_POST['inventory_period']);
     $rep = sanitizeInput($_POST['reporter']);
     $new_status = sanitizeInput($_POST['status']);
+    $remarks = isset($_POST['remarks']) ? sanitizeInput($_POST['remarks']) : '';
     
     global $conn;
-    $stmt = $conn->prepare("UPDATE inventory_report SET status = ? WHERE inventory_period = ? AND reporter = ? AND status = 'Pending'");
-    if($stmt) {
-        $stmt->bind_param("sss", $new_status, $period, $rep);
-        $stmt->execute();
-        $stmt->close();
-        
-        // Send notification to intern if report is approved
+    
+    if ($new_status === 'Rejected' && !empty($remarks)) {
+        // Update with remarks for rejection
+        $stmt = $conn->prepare("UPDATE inventory_report SET status = ?, remarks = ? WHERE inventory_period = ? AND reporter = ? AND status = 'Pending'");
+        if($stmt) {
+            $stmt->bind_param("ssss", $new_status, $remarks, $period, $rep);
+            $stmt->execute();
+            $stmt->close();
+        }
+    } else {
+        // Update without remarks (for approval)
+        $stmt = $conn->prepare("UPDATE inventory_report SET status = ? WHERE inventory_period = ? AND reporter = ? AND status = 'Pending'");
+        if($stmt) {
+            $stmt->bind_param("sss", $new_status, $period, $rep);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+    
+    // Send notification to intern
+    $internId = getUserIdByName($rep);
+    if ($internId) {
         if ($new_status === 'Approved') {
-            $internId = getUserIdByName($rep);
-            if ($internId) {
-                $message = "Your inventory report for period $period has been approved by $full_name. You can now proceed with creating a purchase order.";
-                createNotification($internId, $message, 'success', 'inventory_report', 0);
+            $message = "Your inventory report for period $period has been approved by $full_name. You can now proceed with creating a purchase order.";
+            createNotification($internId, $message, 'success', 'inventory_report', 0);
+        } elseif ($new_status === 'Rejected') {
+            $message = "Your inventory report for period $period has been rejected by $full_name.";
+            if (!empty($remarks)) {
+                $message .= " Reason: $remarks";
             }
+            createNotification($internId, $message, 'error', 'inventory_report', 0);
         }
     }
 }
@@ -43,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Fetch all reports grouped
 $reports = [];
 if (isset($conn)) {
-    $sql = "SELECT inventory_period, reporter, status, MAX(created_at) as submitted_at, SUM(inventory_value) as total_value, COUNT(id) as item_count FROM inventory_report GROUP BY inventory_period, reporter, status ORDER BY submitted_at DESC";
+    $sql = "SELECT inventory_period, reporter, status, remarks, MAX(created_at) as submitted_at, SUM(inventory_value) as total_value, COUNT(id) as item_count FROM inventory_report GROUP BY inventory_period, reporter, status, remarks ORDER BY submitted_at DESC";
     $res = $conn->query($sql);
     if ($res) {
         while ($row = $res->fetch_assoc()) {
@@ -133,6 +152,10 @@ if (isset($conn)) {
                 <tbody>
                     <?php if(!empty($reports)): ?>
                         <?php foreach($reports as $r): ?>
+                        <?php 
+                            // Create safe modal ID by sanitizing inventory period
+                            $safe_modal_id = preg_replace('/[^a-zA-Z0-9]/', '_', $r['inventory_period'] . '_' . $r['reporter']);
+                        ?>
                         <tr>
                             <td><?= htmlspecialchars($r['inventory_period']) ?></td>
                             <td><?= htmlspecialchars($r['reporter']) ?></td>
@@ -146,6 +169,11 @@ if (isset($conn)) {
                                     <span class="badge bg-success">Approved</span>
                                 <?php else: ?>
                                     <span class="badge bg-danger">Rejected</span>
+                                    <?php if(!empty($r['remarks'])): ?>
+                                        <br><small class="text-muted" data-bs-toggle="tooltip" title="<?= htmlspecialchars($r['remarks']) ?>">
+                                            <i class="bi bi-chat-left-text"></i> <?= substr(htmlspecialchars($r['remarks']), 0, 30) ?><?= strlen($r['remarks']) > 30 ? '...' : '' ?>
+                                        </small>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -159,8 +187,41 @@ if (isset($conn)) {
                                         <input type="hidden" name="reporter" value="<?= htmlspecialchars($r['reporter']) ?>">
                                         
                                         <input type="hidden" name="status" value="Approved">
-                                        <button type="submit" class="btn btn-sm btn-success" title="Quick Approve"><i class="bi bi-check-circle"></i> Approve</button>
+                                        <button type="submit" class="btn btn-sm btn-success me-1" title="Quick Approve"><i class="bi bi-check-circle"></i> Approve</button>
                                     </form>
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal<?= $safe_modal_id ?>" title="Reject with Remarks">
+                                        <i class="bi bi-x-circle"></i> Reject
+                                    </button>
+                                    
+                                    <!-- Rejection Modal -->
+                                    <div class="modal fade" id="rejectModal<?= $safe_modal_id ?>" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-danger text-white">
+                                                    <h5 class="modal-title"><i class="bi bi-x-circle"></i> Reject Inventory Report</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="POST">
+                                                    <div class="modal-body">
+                                                        <input type="hidden" name="action" value="update_status">
+                                                        <input type="hidden" name="inventory_period" value="<?= htmlspecialchars($r['inventory_period']) ?>">
+                                                        <input type="hidden" name="reporter" value="<?= htmlspecialchars($r['reporter']) ?>">
+                                                        <input type="hidden" name="status" value="Rejected">
+                                                        
+                                                        <div class="mb-3">
+                                                            <label for="remarks<?= $safe_modal_id ?>" class="form-label fw-bold">Rejection Remarks <span class="text-danger">*</span></label>
+                                                            <textarea class="form-control" id="remarks<?= $safe_modal_id ?>" name="remarks" rows="4" placeholder="Enter reason for rejection..." required></textarea>
+                                                            <div class="form-text">Please provide a clear reason why this report is being rejected.</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> Confirm Rejection</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 <?php elseif($r['status'] === 'Approved'): ?>
                                     <?php if($r['has_po']): ?>
                                         <a href="edit_po.php?id=<?= $r['po_id'] ?>" class="btn btn-sm btn-warning">
@@ -182,5 +243,15 @@ if (isset($conn)) {
             </table>
         </div>
     </div>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
 </body>
 </html>
