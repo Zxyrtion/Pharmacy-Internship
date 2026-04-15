@@ -334,10 +334,6 @@ if ($status_filter !== 'all') {
                                                 <span class="badge bg-warning ms-1">
                                                     <i class="bi bi-clock"></i> Interview Scheduled
                                                 </span>
-                                                <button class="btn btn-sm btn-success ms-1" 
-                                                        onclick="openScheduleModal(<?php echo $application['id']; ?>, '<?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?>')">
-                                                    <i class="bi bi-calendar-check"></i> Set Schedule
-                                                </button>
                                             <?php elseif ($application['schedule_sent']): ?>
                                                 <span class="badge bg-success ms-1">
                                                     <i class="bi bi-check-circle"></i> Schedule Sent
@@ -444,104 +440,7 @@ if ($status_filter !== 'all') {
         </div>
     </div>
     
-    <!-- Schedule & Location Modal -->
-    <div class="modal fade" id="scheduleModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-calendar-check"></i> Set Internship Schedule & Location
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="scheduleForm" method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="set_schedule">
-                        <input type="hidden" name="application_id" id="schedule_application_id">
-                        
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> Setting schedule for: <strong id="applicant_name"></strong>
-                        </div>
-                        
-                        <h6 class="border-bottom pb-2 mb-3">
-                            <i class="bi bi-clock"></i> Internship Schedule
-                        </h6>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Start Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" name="start_date" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Duration <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="duration" 
-                                       placeholder="e.g., 6 Months (480 hours)" required>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Working Days <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="working_days" 
-                                       placeholder="e.g., Monday - Friday" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Working Hours <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="working_hours" 
-                                       placeholder="e.g., 8:00 AM - 5:00 PM" required>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Special Instructions</label>
-                            <textarea class="form-control" name="special_instructions" rows="2" 
-                                      placeholder="e.g., Please report on your first day at 8:00 AM sharp"></textarea>
-                        </div>
-                        
-                        <h6 class="border-bottom pb-2 mb-3 mt-4">
-                            <i class="bi bi-geo-alt"></i> Location Details
-                        </h6>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Pharmacy Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="pharmacy_name" 
-                                   placeholder="e.g., MediCare Pharmacy - Main Branch" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Address <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="pharmacy_address" rows="2" 
-                                      placeholder="e.g., 123 Health Street, Medical District, Cebu City, Cebu 6000" required></textarea>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Contact Person <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="contact_person" 
-                                       placeholder="e.g., Ms. Maria Santos" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Contact Number <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="contact_number" 
-                                       placeholder="e.g., (032) 123-4567" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" name="contact_email" 
-                                       placeholder="e.g., hr@pharmacy.com" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-send"></i> Send to Intern
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

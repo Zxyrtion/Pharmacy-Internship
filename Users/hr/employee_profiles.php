@@ -319,7 +319,6 @@ while ($row = $approved_result->fetch_assoc()) {
                                         <th>Date of Birth</th>
                                         <th>Approval Date</th>
                                         <th>Status</th>
-                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -344,12 +343,6 @@ while ($row = $approved_result->fetch_assoc()) {
                                                 <span class="badge bg-success">
                                                     <i class="bi bi-check-circle"></i> Approved
                                                 </span>
-                                            </td>
-                                            <td>
-                                                <a href="interview_schedule.php" 
-                                                   class="btn btn-sm btn-primary">
-                                                    <i class="bi bi-calendar-check"></i> Schedule Interview
-                                                </a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

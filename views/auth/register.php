@@ -12,10 +12,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $first_name = trim($_POST['first_name']);
     $middle_name = trim($_POST['middle_name']);
     $last_name = trim($_POST['last_name']);
-<<<<<<< HEAD
     $birth_date = trim($_POST['birth_date']);
-=======
->>>>>>> recovery-restore
     $phone_number = trim($_POST['phone_number']);
     $email = trim($_POST['email']);
     $password = $_POST['password'];
@@ -28,15 +25,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Validation
     if (empty($first_name)) $errors[] = "First name is required";
     if (empty($last_name)) $errors[] = "Last name is required";
-<<<<<<< HEAD
     if (empty($birth_date)) $errors[] = "Birth date is required";
-=======
->>>>>>> recovery-restore
     if (empty($phone_number)) $errors[] = "Phone number is required";
     if (empty($email)) $errors[] = "Email is required";
     if (empty($password)) $errors[] = "Password is required";
     
-<<<<<<< HEAD
     // Validate age (must be at least 18)
     if (!empty($birth_date)) {
         $birth_date_obj = new DateTime($birth_date);
@@ -47,8 +40,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     
-=======
->>>>>>> recovery-restore
     // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = "Invalid email format";
@@ -82,49 +73,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     
-    // Check if phone number already exists
-    if (empty($errors)) {
-        $sql = "SELECT id FROM users WHERE phone_number = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $phone_number);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            $errors[] = "Phone number already exists";
-        }
-    }
-    
     // If no errors, proceed with registration
     if (empty($errors)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
-<<<<<<< HEAD
         $sql = "INSERT INTO users (first_name, middle_name, last_name, birth_date, phone_number, email, password, role_id) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssssssi", $first_name, $middle_name, $last_name, $birth_date, $phone_number, $email, $hashed_password, $role_id);
-=======
-        $sql = "INSERT INTO users (first_name, middle_name, last_name, phone_number, email, password, role_id) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssssssi", $first_name, $middle_name, $last_name, $phone_number, $email, $hashed_password, $role_id);
->>>>>>> recovery-restore
+        $stmt->bind_param("sssssssi", 
+            $first_name, $middle_name, $last_name, $birth_date, 
+            $phone_number, $email, $hashed_password, $role_id
+        );
         
         if ($stmt->execute()) {
-            $user_id = $stmt->insert_id;
+            $user_id = $conn->insert_id;
+            
+            // Store temporary user info in session for role selection
             $_SESSION['temp_user_id'] = $user_id;
             $_SESSION['registration_email'] = $email;
+            
+            // Redirect to role selection page
             header('Location: select_role.php');
             exit();
         } else {
-            $errors[] = "Registration failed. Please try again.";
+            $errors[] = "Registration failed. Please try again. Error: " . $stmt->error;
         }
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -158,7 +134,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             overflow: hidden;
             max-width: 1000px;
             width: 100%;
-            margin: 0 1rem;
         }
         
         .register-left {
@@ -180,7 +155,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border-radius: 10px;
             border: 1px solid #e0e0e0;
             padding: 12px 15px;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
         
         .form-control:focus {
@@ -196,12 +171,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             font-weight: 600;
             width: 100%;
             transition: all 0.3s ease;
+            color: white;
         }
         
         .btn-register-submit:hover {
             background: #27ae60;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+            color: white;
         }
         
         .alert {
@@ -209,21 +186,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             margin-bottom: 1rem;
         }
         
-        .form-text {
-            font-size: 0.875rem;
-            color: #6c757d;
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
         }
         
-        .password-strength {
-            height: 5px;
-            border-radius: 3px;
-            margin-top: 5px;
-            transition: all 0.3s ease;
+        .mb-3 {
+            margin-bottom: 0.8rem !important;
         }
-        
-        .strength-weak { background-color: #dc3545; }
-        .strength-medium { background-color: #ffc107; }
-        .strength-strong { background-color: #28a745; }
     </style>
 </head>
 <body>
@@ -234,132 +205,115 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class="register-left">
                         <div class="text-center">
                             <i class="bi bi-hospital" style="font-size: 4rem; margin-bottom: 1rem;"></i>
-                            <h2 class="mb-3">Join MediCare Pharmacy</h2>
-                            <p class="mb-4">Create your account and access our comprehensive healthcare services.</p>
+                            <h2 class="mb-3">Join MediCare!</h2>
+                            <p class="mb-4">Create your account and start your journey with MediCare Pharmacy Internship Program.</p>
                             <div class="mt-4">
-                                <h5>Benefits:</h5>
-                                <ul class="list-unstyled">
-                                    <li><i class="bi bi-check-circle"></i> Easy prescription ordering</li>
-                                    <li><i class="bi bi-check-circle"></i> Professional consultation</li>
-                                    <li><i class="bi bi-check-circle"></i> Fast delivery service</li>
-                                    <li><i class="bi bi-check-circle"></i> Secure health records</li>
+                                <h5>Why Register?</h5>
+                                <ul class="list-unstyled text-start">
+                                    <li class="mb-2"><i class="bi bi-check-circle me-2"></i> Apply for internship positions</li>
+                                    <li class="mb-2"><i class="bi bi-check-circle me-2"></i> Track your application status</li>
+                                    <li class="mb-2"><i class="bi bi-check-circle me-2"></i> Access learning resources</li>
+                                    <li class="mb-2"><i class="bi bi-check-circle me-2"></i> Manage your schedule</li>
+                                    <li class="mb-2"><i class="bi bi-check-circle me-2"></i> Connect with mentors</li>
                                 </ul>
-                            </div>
-                            <div class="mt-4">
-                                <p>Already have an account?</p>
-                                <a href="login.php" class="btn btn-outline-light">
-                                    <i class="bi bi-box-arrow-in-right"></i> Login Here
-                                </a>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-7">
                     <div class="register-right">
-                        <h3 class="mb-4">Create Your Account</h3>
-                        
-                        <?php if (isset($success)): ?>
-                            <div class="alert alert-success" role="alert">
-                                <i class="bi bi-check-circle"></i> <?php echo $success; ?>
-                            </div>
-                        <?php endif; ?>
+                        <h3 class="mb-3">Create Your Account</h3>
                         
                         <?php if (!empty($errors)): ?>
-                            <div class="alert alert-danger" role="alert">
-                                <i class="bi bi-exclamation-triangle"></i>
-                                <ul class="mb-0">
+                            <div class="alert alert-danger">
+                                <strong><i class="bi bi-exclamation-triangle"></i> Registration Errors:</strong>
+                                <ul class="mb-0 mt-2">
                                     <?php foreach ($errors as $error): ?>
-                                        <li><?php echo $error; ?></li>
+                                        <li><?php echo htmlspecialchars($error); ?></li>
                                     <?php endforeach; ?>
                                 </ul>
                             </div>
                         <?php endif; ?>
                         
+                        <?php if (isset($success)): ?>
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle"></i> <?php echo htmlspecialchars($success); ?>
+                            </div>
+                        <?php endif; ?>
+                        
                         <form method="POST" action="">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-6 mb-3">
                                     <label for="first_name" class="form-label">First Name *</label>
                                     <input type="text" class="form-control" id="first_name" name="first_name" required 
                                            value="<?php echo isset($first_name) ? htmlspecialchars($first_name) : ''; ?>"
-                                           placeholder="Enter your first name">
+                                           placeholder="Enter first name">
                                 </div>
-<<<<<<< HEAD
-
-                            <div class="col-md-6">
-                                <label for="middle_name" class="form-label">Middle Name</label>
-                                <input type="text" class="form-control" id="middle_name" name="middle_name" 
-                                       value="<?php echo isset($middle_name) ? htmlspecialchars($middle_name) : ''; ?>"
-                                       placeholder="Enter your middle name (optional)">
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="middle_name" class="form-label">Middle Name</label>
+                                    <input type="text" class="form-control" id="middle_name" name="middle_name" 
+                                           value="<?php echo isset($middle_name) ? htmlspecialchars($middle_name) : ''; ?>"
+                                           placeholder="Optional">
+                                </div>
                             </div>
-
-=======
->>>>>>> recovery-restore
-                                <div class="col-md-6">
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
                                     <label for="last_name" class="form-label">Last Name *</label>
                                     <input type="text" class="form-control" id="last_name" name="last_name" required 
                                            value="<?php echo isset($last_name) ? htmlspecialchars($last_name) : ''; ?>"
-                                           placeholder="Enter your last name">
+                                           placeholder="Enter last name">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="birth_date" class="form-label">Birth Date * (18+ only)</label>
+                                    <input type="date" class="form-control" id="birth_date" name="birth_date" required 
+                                           value="<?php echo isset($birth_date) ? htmlspecialchars($birth_date) : ''; ?>"
+                                           max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
-<<<<<<< HEAD
-                                <label for="birth_date" class="form-label">Birth Date *</label>
-                                <input type="date" class="form-control" id="birth_date" name="birth_date" required 
-                                       value="<?php echo isset($birth_date) ? htmlspecialchars($birth_date) : ''; ?>"
-                                       max="<?php echo date('Y-m-d'); ?>">
-                                <div class="form-text">You must be at least 18 years old to register</div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="phone_number" class="form-label">Phone Number *</label>
+                                    <input type="tel" class="form-control" id="phone_number" name="phone_number" required 
+                                           value="<?php echo isset($phone_number) ? htmlspecialchars($phone_number) : ''; ?>"
+                                           placeholder="09XXXXXXXXX" pattern="^09\d{9}$">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" id="email" name="email" required 
+                                           value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>"
+                                           placeholder="your@email.com">
+                                </div>
                             </div>
                             
-                            
-=======
-                                <label for="middle_name" class="form-label">Middle Name</label>
-                                <input type="text" class="form-control" id="middle_name" name="middle_name" 
-                                       value="<?php echo isset($middle_name) ? htmlspecialchars($middle_name) : ''; ?>"
-                                       placeholder="Enter your middle name (optional)">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="password" class="form-label">Password *</label>
+                                    <input type="password" class="form-control" id="password" name="password" required 
+                                           placeholder="Min 8 characters">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="confirm_password" class="form-label">Confirm Password *</label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required 
+                                           placeholder="Re-enter password">
+                                </div>
                             </div>
                             
->>>>>>> recovery-restore
-                            <div class="mb-3">
-                                <label for="phone_number" class="form-label">Phone Number *</label>
-                                <input type="tel" class="form-control" id="phone_number" name="phone_number" required 
-                                       value="<?php echo isset($phone_number) ? htmlspecialchars($phone_number) : ''; ?>"
-                                       placeholder="09XXXXXXXXX" maxlength="11">
-                                <div class="form-text">Format: 09XXXXXXXXX (Philippine mobile number)</div>
+                            <div class="d-grid gap-2 mt-3">
+                                <button type="submit" class="btn btn-register-submit">
+                                    <i class="bi bi-person-plus"></i> Create Account
+                                </button>
                             </div>
                             
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Email Address *</label>
-                                <input type="email" class="form-control" id="email" name="email" required 
-                                       value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>"
-                                       placeholder="Enter your email address">
+                            <div class="text-center mt-3">
+                                <p class="mb-0">Already have an account? <a href="login.php" class="text-decoration-none">Login here</a></p>
+                                <p class="text-muted small mt-2">By registering, you agree to our terms and conditions.</p>
                             </div>
-                            
-                                                        
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password *</label>
-                                <input type="password" class="form-control" id="password" name="password" required 
-                                       placeholder="Enter your password" minlength="8">
-                                <div class="form-text">Minimum 8 characters</div>
-                                <div class="password-strength" id="passwordStrength"></div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="confirm_password" class="form-label">Confirm Password *</label>
-                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required 
-                                       placeholder="Confirm your password">
-                            </div>
-                            
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="terms" required>
-                                <label class="form-check-label" for="terms">
-                                    I agree to the <a href="#" class="text-decoration-none">Terms and Conditions</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>
-                                </label>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-register-submit">
-                                <i class="bi bi-person-plus"></i> Create Account
-                            </button>
                         </form>
                     </div>
                 </div>
@@ -369,38 +323,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Password strength checker
-        document.getElementById('password').addEventListener('input', function() {
-            const password = this.value;
-            const strengthBar = document.getElementById('passwordStrength');
-            
-            let strength = 0;
-            if (password.length >= 8) strength++;
-            if (password.match(/[a-z]+/)) strength++;
-            if (password.match(/[A-Z]+/)) strength++;
-            if (password.match(/[0-9]+/)) strength++;
-            if (password.match(/[$@#&!]+/)) strength++;
-            
-            strengthBar.className = 'password-strength';
-            
-            if (strength <= 2) {
-                strengthBar.classList.add('strength-weak');
-                strengthBar.style.width = '33%';
-            } else if (strength === 3 || strength === 4) {
-                strengthBar.classList.add('strength-medium');
-                strengthBar.style.width = '66%';
-            } else {
-                strengthBar.classList.add('strength-strong');
-                strengthBar.style.width = '100%';
-            }
-        });
-        
-        // Phone number formatting
-        document.getElementById('phone_number').addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11);
-        });
-    </script>
 </body>
 </html>
