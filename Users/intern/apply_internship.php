@@ -134,7 +134,7 @@ $internship_record = $internship->getByUserId($_SESSION['user_id']);
     
     <div class="container mt-4">
         <div class="card">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <h4 class="mb-0">Apply Internship</h4>
                 <small>Submit your internship application</small>
             </div>

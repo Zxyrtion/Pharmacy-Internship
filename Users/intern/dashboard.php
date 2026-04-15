@@ -17,6 +17,25 @@ $user_id = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
 $email = $_SESSION['email'];
 
+// Fetch internship application status
+$application_status = null;
+$application_data = null;
+$app_stmt = $conn->prepare("SELECT application_status, interview_scheduled, interview_date, interview_time, 
+                                   schedule_sent, is_eligible, created_at
+                            FROM internship_records 
+                            WHERE user_id = ? 
+                            ORDER BY created_at DESC 
+                            LIMIT 1");
+if ($app_stmt) {
+    $app_stmt->bind_param("i", $user_id);
+    $app_stmt->execute();
+    $app_result = $app_stmt->get_result();
+    if ($app_result && $app_result->num_rows > 0) {
+        $application_data = $app_result->fetch_assoc();
+        $application_status = $application_data['application_status'];
+    }
+}
+
 $unread_count = 0;
 $latest_notifications = [];
 
@@ -229,6 +248,70 @@ if ($list_stmt) {
             position: relative;
         }
         
+        .progress-tracker {
+            padding: 1rem 0;
+        }
+        
+        .progress-percentage {
+            text-align: right;
+        }
+        
+        .percentage-text {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+            line-height: 1;
+        }
+        
+        .progress-step {
+            text-align: center;
+            position: relative;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-step.active {
+            opacity: 1;
+        }
+        
+        .progress-step.current .step-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .step-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.5rem;
+            font-size: 1.5rem;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-step.active .step-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .step-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+        
+        .step-status {
+            margin-top: 0.5rem;
+        }
+        
         .btn-logout {
             background: #e74c3c;
             color: white;
@@ -335,6 +418,92 @@ if ($list_stmt) {
                 <h1><i class="bi bi-mortarboard"></i> Intern Dashboard</h1>
                 <p class="mb-0">Welcome back, <?php echo htmlspecialchars($full_name); ?>! Learn and assist in pharmacy operations.</p>
             </div>
+            
+            <?php if ($application_data): ?>
+            <!-- Application Progress Tracker -->
+            <div class="dashboard-card mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0"><i class="bi bi-clipboard-check"></i> Application Progress</h3>
+                    <?php
+                    $status = $application_status;
+                    $status_order = ['pending', 'submitted', 'under_review', 'approved'];
+                    $current_index = array_search($status, $status_order);
+                    if ($current_index === false) $current_index = 0;
+                    $percentage = (($current_index + 1) / count($status_order)) * 100;
+                    ?>
+                    <div class="progress-percentage">
+                        <span class="percentage-text"><?php echo round($percentage); ?>%</span>
+                        <span class="text-muted small">Complete</span>
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="progress mb-4" style="height: 8px; border-radius: 10px;">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: <?php echo $percentage; ?>%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"
+                         aria-valuenow="<?php echo $percentage; ?>" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                
+                <div class="progress-tracker">
+                    <?php
+                    $steps = [
+                        'pending' => ['label' => 'Application Submitted', 'icon' => 'bi-file-earmark-text', 'color' => 'secondary'],
+                        'submitted' => ['label' => 'Under Review', 'icon' => 'bi-hourglass-split', 'color' => 'info'],
+                        'under_review' => ['label' => 'Documents Reviewed', 'icon' => 'bi-search', 'color' => 'warning'],
+                        'approved' => ['label' => 'Approved', 'icon' => 'bi-check-circle', 'color' => 'success'],
+                        'rejected' => ['label' => 'Rejected', 'icon' => 'bi-x-circle', 'color' => 'danger']
+                    ];
+                    ?>
+                    
+                    <div class="row">
+                        <?php foreach ($status_order as $index => $step_key): 
+                            $step = $steps[$step_key];
+                            $is_active = $index <= $current_index;
+                            $is_current = $step_key === $status;
+                        ?>
+                        <div class="col-md-3 mb-3">
+                            <div class="progress-step <?php echo $is_active ? 'active' : ''; ?> <?php echo $is_current ? 'current' : ''; ?>">
+                                <div class="step-icon">
+                                    <i class="bi <?php echo $step['icon']; ?>"></i>
+                                </div>
+                                <div class="step-label"><?php echo $step['label']; ?></div>
+                                <?php if ($is_current): ?>
+                                    <div class="step-status">
+                                        <span class="badge bg-<?php echo $step['color']; ?>">Current Status</span>
+                                    </div>
+                                <?php elseif ($is_active): ?>
+                                    <div class="step-status">
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <?php if ($status === 'rejected'): ?>
+                        <div class="alert alert-danger mt-3">
+                            <i class="bi bi-exclamation-triangle"></i> Your application has been rejected. Please contact HR for more information.
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($application_data['interview_scheduled']): ?>
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-calendar-event"></i> <strong>Interview Scheduled:</strong> 
+                            <?php echo date('F d, Y', strtotime($application_data['interview_date'])); ?> 
+                            at <?php echo date('h:i A', strtotime($application_data['interview_time'])); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($application_data['schedule_sent']): ?>
+                        <div class="alert alert-success mt-3">
+                            <i class="bi bi-check-circle"></i> Your work schedule has been sent! Check your notifications.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
             
             <div class="row">
                 <div class="col-md-6 col-lg-3 mb-4">

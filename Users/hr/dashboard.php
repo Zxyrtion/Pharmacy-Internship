@@ -163,10 +163,10 @@ $email = $_SESSION['email'];
                 
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
-                        <i class="bi bi-calendar-check feature-icon"></i>
-                        <h4>Attendance</h4>
-                        <p>Track employee attendance</p>
-                        <a href="attendance.php" class="btn btn-primary">View Report</a>
+                        <i class="bi bi-person-badge feature-icon"></i>
+                        <h4>Employee Profiles</h4>
+                        <p>View detailed employee profiles and documents</p>
+                        <a href="employee_profiles.php" class="btn btn-primary">View Profiles</a>
                     </div>
                 </div>
                 
@@ -188,35 +188,6 @@ $email = $_SESSION['email'];
                     </div>
                 </div>
             </div>
-            
-            <div class="dashboard-card">
-                <h3><i class="bi bi-clock-history"></i> Recent Activities</h3>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Activity</th>
-                                <th>Employee</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>New Hire</td>
-                                <td>John Smith</td>
-                                <td>2024-04-14</td>
-                                <td><span class="badge bg-success">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Leave Request</td>
-                                <td>Jane Doe</td>
-                                <td>2024-04-13</td>
-                                <td><span class="badge bg-warning">Pending</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
     </div>
