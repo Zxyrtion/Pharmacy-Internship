@@ -5,6 +5,6 @@ require_once 'config.php';
 session_destroy();
 
 // Redirect to landing page
-header('Location: index.php');
+header('Location: ../../index.php');
 exit();
 ?>

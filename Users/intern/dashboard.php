@@ -156,6 +156,7 @@ $email = $_SESSION['email'];
                         <button class="btn btn-primary">View Progress</button>
                     </div>
                 </div>
+<<<<<<< HEAD
 
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">

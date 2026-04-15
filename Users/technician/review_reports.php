@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $internId = getUserIdByName($rep);
     if ($internId) {
         if ($new_status === 'Approved') {
-            $message = "Your inventory report for period $period has been approved by $full_name. You can now proceed with creating a purchase order.";
+            $message = "Your inventory report for period $period has been approved by $full_name. The pharmacist will generate the purchase order.";
             createNotification($internId, $message, 'success', 'inventory_report', 0);
         } elseif ($new_status === 'Rejected') {
             $message = "Your inventory report for period $period has been rejected by $full_name.";
@@ -223,15 +223,8 @@ if (isset($conn)) {
                                         </div>
                                     </div>
                                 <?php elseif($r['status'] === 'Approved'): ?>
-                                    <?php if($r['has_po']): ?>
-                                        <a href="edit_po.php?id=<?= $r['po_id'] ?>" class="btn btn-sm btn-warning">
-                                            <i class="bi bi-pencil-square"></i> Edit PO
-                                        </a>
-                                    <?php else: ?>
-                                        <a href="create_po.php?period=<?= urlencode($r['inventory_period']) ?>&reporter=<?= urlencode($r['reporter']) ?>" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-file-earmark-text"></i> Create PO
-                                        </a>
-                                    <?php endif; ?>
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Approved</span>
+                                    <small class="text-muted d-block mt-1">Pharmacist will generate PO</small>
                                 <?php endif; ?>
                             </td>
                         </tr>

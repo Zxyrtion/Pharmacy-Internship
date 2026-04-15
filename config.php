@@ -118,7 +118,7 @@ function redirectByRole($role) {
             header('Location: ' . $base_url . 'Users/pharmacist/dashboard.php');
             break;
         case 'Pharmacy Assistant':
-            header('Location: ' . $base_url . 'assistant/dashboard.php');
+            header('Location: ' . $base_url . 'Users/assistant/dashboard.php');
             break;
         case 'Pharmacy Technician':
             header('Location: ' . $base_url . 'Users/technician/dashboard.php');

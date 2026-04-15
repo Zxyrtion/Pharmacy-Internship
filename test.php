@@ -30,4 +30,9 @@ $roles = $conn->query("SELECT role_name, COUNT(*) as count FROM users GROUP BY r
 if ($roles) {
     while ($row = $roles->fetch_assoc()) {
         $color = $row['count'] > 0 ? 'green' : 'red';
-        echo "<div style='color: $color;'>
+        echo "<div style='color: $color;'>";
+        echo htmlspecialchars($row['role_name']) . ": " . $row['count'] . " users</div>";
+    }
+}
+echo "</div>";
+?>
