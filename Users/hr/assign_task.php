@@ -22,6 +22,12 @@ if ($employee_id <= 0) {
 
 $routine_table = 'internship_routine';
 
+// Add assigned_by_user_id column if it doesn't exist yet
+$conn->query("ALTER TABLE `{$routine_table}` ADD COLUMN IF NOT EXISTS `assigned_by_user_id` INT(11) DEFAULT NULL");
+
+// Add status column if it doesn't exist yet
+$conn->query("ALTER TABLE `{$routine_table}` ADD COLUMN IF NOT EXISTS `status` VARCHAR(30) NOT NULL DEFAULT 'pending'");
+
 // Load employee info
 $emp = null;
 $emp_stmt = $conn->prepare("SELECT u.id, u.first_name, u.middle_name, u.last_name, u.email, r.role_name
@@ -155,21 +161,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $date_from = $date_from_input;
         $date_to   = $date_to_input;
 
-        $sql  = "INSERT INTO `{$routine_table}` (assigned_to, title, duties, date_from, date_to, file_path)
-                 VALUES (?, ?, ?, ?, ?, ?)";
+        $sql  = "INSERT INTO `{$routine_table}` (assigned_to, title, duties, date_from, date_to, file_path, assigned_by_user_id, status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')";
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
             $errors[] = 'Database error: could not prepare statement.';
         } else {
             $file_path = $attachment['stored_name'];
+            $hr_user_id = $user_id; // Current HR user ID
             $stmt->bind_param(
-                "isssss",
+                "isssssi",
                 $employee_id,
                 $title,
                 $description,
                 $date_from,
                 $date_to,
-                $file_path
+                $file_path,
+                $hr_user_id
             );
             if ($stmt->execute()) {
                 // notify employee

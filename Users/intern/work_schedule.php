@@ -136,9 +136,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $update_stmt->bind_param("ii", $schedule_id, $user_id);
                     $update_stmt->execute();
                     
+                    // Create notification for HR personnel who created the schedule
+                    require_once '../../models/notification.php';
+                    require_once '../../core/Database.php';
+                    
+                    $database = new Database();
+                    $db = $database->getConnection();
+                    $notification = new Notification($db);
+                    
+                    $notification_title = "Work Schedule Accepted";
+                    $notification_message = $full_name . " has accepted their work schedule and signed the MOA for " . $schedule['department'] . " starting " . date('F d, Y', strtotime($schedule['start_date'])) . ".";
+                    $notification->create($schedule['created_by'], 'schedule_accepted', $notification_title, $notification_message, $schedule_id);
+                    
                     $success = "Work schedule and MOA accepted successfully! You are now ready to start your internship.";
                 } else {
                     $error = "Failed to save MOA: " . $moa_stmt->error;
+                }
+            } else {
+                $error = "Schedule not found.";
+            }
+        } elseif ($_POST['action'] === 'reject') {
+            // Reject the schedule
+            $reason = $_POST['reject_reason'];
+            
+            // Get work schedule details for notification
+            $ws_sql = "SELECT * FROM work_schedules WHERE id = ? AND user_id = ?";
+            $ws_stmt = $conn->prepare($ws_sql);
+            $ws_stmt->bind_param("ii", $schedule_id, $user_id);
+            $ws_stmt->execute();
+            $ws_result = $ws_stmt->get_result();
+            $schedule = $ws_result->fetch_assoc();
+            
+            if ($schedule) {
+                // Update schedule status to rejected
+                $update_sql = "UPDATE work_schedules 
+                               SET status = 'rejected', 
+                                   special_instructions = CONCAT(IFNULL(special_instructions, ''), '\n\n[REJECTED by Intern on ', NOW(), ']\nReason: ', ?) 
+                               WHERE id = ? AND user_id = ?";
+                $update_stmt = $conn->prepare($update_sql);
+                $update_stmt->bind_param("sii", $reason, $schedule_id, $user_id);
+                
+                if ($update_stmt->execute()) {
+                    // Create notification for HR personnel who created the schedule
+                    require_once '../../models/notification.php';
+                    require_once '../../core/Database.php';
+                    
+                    $database = new Database();
+                    $db = $database->getConnection();
+                    $notification = new Notification($db);
+                    
+                    $notification_title = "Work Schedule Rejected";
+                    $notification_message = $full_name . " has rejected their work schedule for " . $schedule['department'] . ". Reason: " . $reason . ". Please edit and resend the schedule.";
+                    $notification->create($schedule['created_by'], 'schedule_rejected', $notification_title, $notification_message, $schedule_id);
+                    
+                    $success = "Schedule rejected. HR has been notified and will update your schedule.";
+                } else {
+                    $error = "Failed to reject schedule.";
                 }
             } else {
                 $error = "Schedule not found.";
@@ -384,7 +437,12 @@ $work_schedule = $schedule_result->fetch_assoc();
                     <?php if ($work_schedule['status'] === 'sent'): ?>
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle"></i> 
-                            <strong>Action Required:</strong> Please review your work schedule and accept it, or request changes if needed.
+                            <strong>Action Required:</strong> Please review your work schedule and accept it, or reject if you need changes.
+                        </div>
+                    <?php elseif ($work_schedule['status'] === 'rejected'): ?>
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle"></i> 
+                            <strong>Schedule Rejected:</strong> You rejected this schedule. HR has been notified and will update it soon.
                         </div>
                     <?php elseif ($work_schedule['status'] === 'acknowledged' && $work_schedule['moa_id']): ?>
                         <div class="alert alert-success">
@@ -491,9 +549,13 @@ $work_schedule = $schedule_result->fetch_assoc();
                                         <i class="bi bi-check-circle"></i> Accept Schedule & Sign MOA
                                     </button>
                                     
-                                    <button class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#resetModal">
-                                        <i class="bi bi-arrow-clockwise"></i> Request Schedule Reset
+                                    <button class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                                        <i class="bi bi-x-circle"></i> Reject Schedule
                                     </button>
+                                <?php elseif ($work_schedule['status'] === 'rejected'): ?>
+                                    <div class="alert alert-danger">
+                                        <i class="bi bi-x-circle"></i> Rejected - Waiting for HR
+                                    </div>
                                 <?php elseif ($work_schedule['status'] === 'acknowledged'): ?>
                                     <div class="alert alert-success">
                                         <i class="bi bi-check-circle"></i> MOA Signed
@@ -516,6 +578,43 @@ $work_schedule = $schedule_result->fetch_assoc();
                     </a>
                 </div>
             <?php endif; ?>
+        </div>
+    </div>
+    
+    <!-- Reject Schedule Modal -->
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-x-circle"></i> Reject Work Schedule
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="reject">
+                        <input type="hidden" name="schedule_id" value="<?php echo $work_schedule['id'] ?? ''; ?>">
+                        
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            <strong>Important:</strong> By rejecting this schedule, HR will be notified and will need to create a new schedule for you.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Reason for Rejection</strong> <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="reject_reason" rows="4" required
+                                      placeholder="Please explain why you cannot accept this schedule (e.g., I have classes during these hours, the shift time conflicts with my availability, etc.)"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Reject Schedule
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
     
