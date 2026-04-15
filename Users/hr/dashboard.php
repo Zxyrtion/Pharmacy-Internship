@@ -3,13 +3,21 @@ require_once '../../config.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {
+<<<<<<< HEAD
     header('Location: ../views/auth/login.php');
+=======
+    header('Location: ../../views/auth/login.php');
+>>>>>>> recovery-restore
     exit();
 }
 
 // Check if user has correct role
 if ($_SESSION['role_name'] !== 'HR Personnel') {
+<<<<<<< HEAD
     header('Location: ../index.php');
+=======
+    header('Location: ../../index.php');
+>>>>>>> recovery-restore
     exit();
 }
 
@@ -93,7 +101,11 @@ $email = $_SESSION['email'];
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
+<<<<<<< HEAD
             <a class="navbar-brand" href="../index.php">
+=======
+            <a class="navbar-brand" href="../../index.php">
+>>>>>>> recovery-restore
                 <i class="bi bi-hospital"></i> MediCare Pharmacy
             </a>
             
@@ -118,6 +130,7 @@ $email = $_SESSION['email'];
             <div class="row">
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
+<<<<<<< HEAD
                         <i class="bi bi-file-earmark-text feature-icon"></i>
                         <h4>Intern Applicants</h4>
                         <p>Review internship applications</p>
@@ -158,6 +171,12 @@ $email = $_SESSION['email'];
                         <h4>Active Interns</h4>
                         <p>View interns who signed MOA</p>
                         <a href="view_ready_interns.php" class="btn btn-success">View Interns</a>
+=======
+                        <i class="bi bi-person-plus feature-icon"></i>
+                        <h4>Employees</h4>
+                        <p>Manage employee records</p>
+                        <a href="employees.php" class="btn btn-primary">View All</a>
+>>>>>>> recovery-restore
                     </div>
                 </div>
                 
@@ -166,7 +185,11 @@ $email = $_SESSION['email'];
                         <i class="bi bi-calendar-check feature-icon"></i>
                         <h4>Attendance</h4>
                         <p>Track employee attendance</p>
+<<<<<<< HEAD
                         <a href="attendance.php" class="btn btn-primary">View Report</a>
+=======
+                        <button class="btn btn-primary">View Report</button>
+>>>>>>> recovery-restore
                     </div>
                 </div>
                 
@@ -183,8 +206,13 @@ $email = $_SESSION['email'];
                     <div class="feature-card">
                         <i class="bi bi-clipboard-data feature-icon"></i>
                         <h4>Reports</h4>
+<<<<<<< HEAD
                         <p>View HR analytics</p>
                         <button class="btn btn-primary">Analytics</button>
+=======
+                        <p>Assign duties and monitor tasks</p>
+                        <button class="btn btn-primary" type="button" disabled>Analytics</button>
+>>>>>>> recovery-restore
                     </div>
                 </div>
             </div>

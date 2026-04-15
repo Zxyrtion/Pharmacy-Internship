@@ -3,7 +3,11 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
+<<<<<<< HEAD
 -- Generation Time: Apr 14, 2026 at 01:59 PM
+=======
+-- Generation Time: Apr 14, 2026 at 04:55 AM
+>>>>>>> recovery-restore
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -24,6 +28,7 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+<<<<<<< HEAD
 -- Table structure for table `attendance`
 --
 
@@ -425,6 +430,8 @@ INSERT INTO `pharmacy_business_document` (`id`, `title`, `description`, `documen
 -- --------------------------------------------------------
 
 --
+=======
+>>>>>>> recovery-restore
 -- Table structure for table `roles`
 --
 
@@ -456,7 +463,10 @@ CREATE TABLE `users` (
   `first_name` varchar(50) NOT NULL,
   `middle_name` varchar(50) DEFAULT NULL,
   `last_name` varchar(50) NOT NULL,
+<<<<<<< HEAD
   `birth_date` date DEFAULT NULL,
+=======
+>>>>>>> recovery-restore
   `phone_number` varchar(20) NOT NULL,
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
@@ -470,6 +480,7 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
+<<<<<<< HEAD
 INSERT INTO `users` (`id`, `first_name`, `middle_name`, `last_name`, `birth_date`, `phone_number`, `email`, `password`, `role_id`, `is_active`, `created_at`, `updated_at`) VALUES
 (12, 'Joanna', 'Rolida', 'wew', NULL, '09251242131', 'joanna@gmail.com', '$2y$10$DGBkL4HIvepYzS9b5ARMS.7Cw4LfvDDO.zFl2GVxJ3s.vGBi9/gaG', 2, 1, '2026-04-14 03:29:03', '2026-04-14 03:29:17'),
 (16, 'Dave', 'Vismanos', 'Dela Cerna', '2004-03-14', '09120738886', 'davedelacerna09@gmail.com', '$2y$10$hvmw4/09MXh8Rj.BBZ6XM.QjzsZqm7/nZo5e1E3yVB0HIrzNyw8H2', 1, 1, '2026-04-14 06:59:02', '2026-04-14 06:59:16');
@@ -507,12 +518,17 @@ CREATE TABLE `work_schedules` (
 
 INSERT INTO `work_schedules` (`id`, `evaluation_id`, `user_id`, `created_by`, `start_date`, `department`, `shift_type`, `shift_time`, `working_days`, `supervisor_name`, `location`, `special_instructions`, `formatted_schedule`, `status`, `sent_at`, `acknowledged_at`, `created_at`, `updated_at`) VALUES
 (6, 7, 16, 12, '2026-04-20', 'Pharmacy Operations', 'night', '11 PM - 7 AM', 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday', 'dr ERWINM', 'Downtown Branch', 'bE ON TIME', 'Department: Pharmacy Operations\r\nShift: 11 PM - 7 AM\r\n\r\nWeekly Schedule:\r\n- Monday: 11 PM - 7 AM\r\n- Tuesday: 11 PM - 7 AM\r\n- Wednesday: 11 PM - 7 AM\r\n- Thursday: 11 PM - 7 AM\r\n- Friday: 11 PM - 7 AM\r\n- Saturday: 11 PM - 7 AM\r\n- Sunday: 11 PM - 7 AM\r\n\r\nSupervisor: dr ERWINM\r\nLocation: Downtown Branch\r\n\r\nNotes: bE ON TIME', 'acknowledged', '2026-04-14 11:57:19', '2026-04-14 11:57:42', '2026-04-14 11:57:19', '2026-04-14 11:57:42');
+=======
+INSERT INTO `users` (`id`, `first_name`, `middle_name`, `last_name`, `phone_number`, `email`, `password`, `role_id`, `is_active`, `created_at`, `updated_at`) VALUES
+(11, 'Dave', 'Dela', 'cerna', '09120738886', 'davedelacerna09@gmail.com', '$2y$10$0BqzzJfgTMihAmGS/W/sAu.oZEG218Z2GZ7DVNEdAyscnSx/qoahu', 1, 1, '2026-04-14 02:52:52', '2026-04-14 02:53:34');
+>>>>>>> recovery-restore
 
 --
 -- Indexes for dumped tables
 --
 
 --
+<<<<<<< HEAD
 -- Indexes for table `attendance`
 --
 ALTER TABLE `attendance`
@@ -631,6 +647,8 @@ ALTER TABLE `pharmacy_business_document`
   ADD KEY `is_active` (`is_active`);
 
 --
+=======
+>>>>>>> recovery-restore
 -- Indexes for table `roles`
 --
 ALTER TABLE `roles`
@@ -650,6 +668,7 @@ ALTER TABLE `users`
   ADD KEY `idx_created_at` (`created_at`);
 
 --
+<<<<<<< HEAD
 -- Indexes for table `work_schedules`
 --
 ALTER TABLE `work_schedules`
@@ -661,10 +680,13 @@ ALTER TABLE `work_schedules`
   ADD KEY `idx_start_date` (`start_date`);
 
 --
+=======
+>>>>>>> recovery-restore
 -- AUTO_INCREMENT for dumped tables
 --
 
 --
+<<<<<<< HEAD
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
@@ -737,6 +759,8 @@ ALTER TABLE `pharmacy_business_document`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+=======
+>>>>>>> recovery-restore
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
@@ -746,6 +770,7 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
+<<<<<<< HEAD
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
@@ -753,12 +778,16 @@ ALTER TABLE `users`
 --
 ALTER TABLE `work_schedules`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+=======
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+>>>>>>> recovery-restore
 
 --
 -- Constraints for dumped tables
 --
 
 --
+<<<<<<< HEAD
 -- Constraints for table `attendance`
 --
 ALTER TABLE `attendance`
@@ -844,10 +873,13 @@ ALTER TABLE `pharmacy_business_document`
   ADD CONSTRAINT `pharmacy_business_document_ibfk_1` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+=======
+>>>>>>> recovery-restore
 -- Constraints for table `users`
 --
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE;
+<<<<<<< HEAD
 
 --
 -- Constraints for table `work_schedules`
@@ -856,6 +888,8 @@ ALTER TABLE `work_schedules`
   ADD CONSTRAINT `work_schedules_ibfk_1` FOREIGN KEY (`evaluation_id`) REFERENCES `interview_evaluations` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `work_schedules_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `work_schedules_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+=======
+>>>>>>> recovery-restore
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

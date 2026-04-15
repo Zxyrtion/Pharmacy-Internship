@@ -1,4 +1,5 @@
 <?php
+<<<<<<< HEAD
 
 class Database {
     private $host = "127.0.0.1";
@@ -22,3 +23,10 @@ class Database {
     }
 }
 ?>
+=======
+// Database configuration
+$host = "127.0.0.1";
+$username = "root";
+$password = "";
+$database = "internship";
+>>>>>>> recovery-restore

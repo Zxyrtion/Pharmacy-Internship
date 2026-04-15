@@ -17,8 +17,16 @@ if ($conn->connect_error) {
 $conn->set_charset("utf8mb4");
 
 // Start session for user management
+<<<<<<< HEAD
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
+=======
+session_start();
+
+// Base URL (project folder under htdocs). Example: /Pharmacy-internship/
+if (!defined('BASE_URL')) {
+    define('BASE_URL', '/' . basename(__DIR__) . '/');
+>>>>>>> recovery-restore
 }
 
 // Function to check if user is logged in
@@ -76,6 +84,7 @@ function createUserSession($user) {
 
 // Function to redirect based on role
 function redirectByRole($role) {
+<<<<<<< HEAD
     $base = '/Pharmacy-Internship';
     switch($role) {
         case 'Customer':
@@ -98,6 +107,29 @@ function redirectByRole($role) {
             break;
         default:
             header("Location: $base/index.php");
+=======
+    switch($role) {
+        case 'Customer':
+            header('Location: ' . BASE_URL . 'Users/customer/dashboard.php');
+            break;
+        case 'Pharmacist':
+            header('Location: ' . BASE_URL . 'Users/pharmacist/dashboard.php');
+            break;
+        case 'Pharmacy Assistant':
+            header('Location: ' . BASE_URL . 'assistant/dashboard.php');
+            break;
+        case 'Pharmacy Technician':
+            header('Location: ' . BASE_URL . 'Users/technician/dashboard.php');
+            break;
+        case 'HR Personnel':
+            header('Location: ' . BASE_URL . 'Users/hr/dashboard.php');
+            break;
+        case 'Intern':
+            header('Location: ' . BASE_URL . 'Users/intern/dashboard.php');
+            break;
+        default:
+            header('Location: ' . BASE_URL . 'index.php');
+>>>>>>> recovery-restore
             break;
     }
     exit();

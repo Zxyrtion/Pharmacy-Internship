@@ -13,6 +13,7 @@ if ($_SESSION['role_name'] !== 'Intern') {
     exit();
 }
 
+<<<<<<< HEAD
 $user_id = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
 $email = $_SESSION['email'];
@@ -51,6 +52,45 @@ $schedule_stmt->bind_param("i", $user_id);
 $schedule_stmt->execute();
 $schedule_result = $schedule_stmt->get_result();
 $work_schedule = $schedule_result->fetch_assoc();
+=======
+$user_id   = $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'];
+$email     = $_SESSION['email'];
+
+$unread_count = 0;
+$latest_notifications = [];
+
+$cnt_stmt = $conn->prepare("SELECT COUNT(*) AS c FROM notifications WHERE user_id = ? AND is_read = 0");
+if ($cnt_stmt) {
+    $uid = (int)$user_id;
+    $cnt_stmt->bind_param("i", $uid);
+    if ($cnt_stmt->execute()) {
+        $res = $cnt_stmt->get_result();
+        if ($res) {
+            $row = $res->fetch_assoc();
+            $unread_count = (int)($row['c'] ?? 0);
+        }
+    }
+}
+
+$list_stmt = $conn->prepare("SELECT id, title, message, link, is_read, created_at
+                             FROM notifications
+                             WHERE user_id = ?
+                             ORDER BY created_at DESC
+                             LIMIT 5");
+if ($list_stmt) {
+    $uid = (int)$user_id;
+    $list_stmt->bind_param("i", $uid);
+    if ($list_stmt->execute()) {
+        $res = $list_stmt->get_result();
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $latest_notifications[] = $row;
+            }
+        }
+    }
+}
+>>>>>>> recovery-restore
 ?>
 
 <!DOCTYPE html>
@@ -123,6 +163,7 @@ $work_schedule = $schedule_result->fetch_assoc();
             background: #c0392b;
             transform: translateY(-2px);
         }
+<<<<<<< HEAD
         
         .notification-bell {
             position: relative;
@@ -217,12 +258,19 @@ $work_schedule = $schedule_result->fetch_assoc();
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm" style="position: relative; z-index: 1000;">
+=======
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+>>>>>>> recovery-restore
         <div class="container">
             <a class="navbar-brand" href="../../index.php">
                 <i class="bi bi-hospital"></i> MediCare Pharmacy
             </a>
             
             <div class="navbar-nav ms-auto">
+<<<<<<< HEAD
                 <!-- Notification Bell -->
                 <div class="position-relative me-3" style="display: inline-block; z-index: 10000;">
                     <div class="notification-bell" id="notificationBell">
@@ -276,6 +324,8 @@ $work_schedule = $schedule_result->fetch_assoc();
                     </div>
                 </div>
                 
+=======
+>>>>>>> recovery-restore
                 <span class="navbar-text me-3">
                     <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($full_name); ?>
                 </span>
@@ -286,6 +336,7 @@ $work_schedule = $schedule_result->fetch_assoc();
         </div>
     </nav>
 
+<<<<<<< HEAD
     <?php if ($internship_record['application_status'] === 'approved'): ?>
     <?php elseif ($internship_record['application_status'] === 'rejected'): ?>
     <!-- Notification Bar for Rejected Application -->
@@ -325,6 +376,8 @@ $work_schedule = $schedule_result->fetch_assoc();
     </div>
     <?php endif; ?>
 
+=======
+>>>>>>> recovery-restore
     <div class="dashboard-container">
         <div class="container">
             <div class="welcome-header">
@@ -332,6 +385,7 @@ $work_schedule = $schedule_result->fetch_assoc();
                 <p class="mb-0">Welcome back, <?php echo htmlspecialchars($full_name); ?>! Learn and assist in pharmacy operations.</p>
             </div>
             
+<<<<<<< HEAD
             <!-- Internship Status Card -->
             <div class="col-12 mb-4">
                 <div class="dashboard-card">
@@ -448,6 +502,11 @@ $work_schedule = $schedule_result->fetch_assoc();
                 
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
+=======
+            <div class="row">
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+>>>>>>> recovery-restore
                         <i class="bi bi-book feature-icon"></i>
                         <h4>Learning Modules</h4>
                         <p>Complete training modules</p>
@@ -469,7 +528,11 @@ $work_schedule = $schedule_result->fetch_assoc();
                         <i class="bi bi-clipboard-check feature-icon"></i>
                         <h4>Tasks</h4>
                         <p>Complete assigned tasks</p>
+<<<<<<< HEAD
                         <button class="btn btn-primary">View Tasks</button>
+=======
+                        <a class="btn btn-primary" href="tasks.php">View Tasks</a>
+>>>>>>> recovery-restore
                     </div>
                 </div>
                 
@@ -481,6 +544,7 @@ $work_schedule = $schedule_result->fetch_assoc();
                         <button class="btn btn-primary">View Progress</button>
                     </div>
                 </div>
+<<<<<<< HEAD
                 
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
@@ -490,6 +554,42 @@ $work_schedule = $schedule_result->fetch_assoc();
                         <a href="policies_guidelines.php" class="btn btn-primary">View Policies</a>
                     </div>
                 </div>
+=======
+            </div>
+
+            <div class="dashboard-card">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h3 class="mb-0"><i class="bi bi-bell"></i> Notifications</h3>
+                    <a href="tasks.php" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-clipboard-check"></i> View Tasks
+                        <?php if ($unread_count > 0): ?>
+                            <span class="badge bg-danger ms-1"><?php echo (int)$unread_count; ?></span>
+                        <?php endif; ?>
+                    </a>
+                </div>
+
+                <?php if (empty($latest_notifications)): ?>
+                    <p class="text-muted mb-0">No notifications yet.</p>
+                <?php else: ?>
+                    <div class="list-group">
+                        <?php foreach ($latest_notifications as $n): ?>
+                            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
+                               href="<?php echo htmlspecialchars($n['link'] ?: 'tasks.php'); ?>">
+                                <div class="me-3">
+                                    <div class="fw-semibold">
+                                        <?php echo htmlspecialchars($n['title']); ?>
+                                        <?php if ((int)$n['is_read'] === 0): ?>
+                                            <span class="badge bg-danger ms-1">New</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="small text-muted"><?php echo htmlspecialchars($n['message']); ?></div>
+                                </div>
+                                <small class="text-muted"><?php echo htmlspecialchars($n['created_at']); ?></small>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+>>>>>>> recovery-restore
             </div>
             
             <div class="dashboard-card">
@@ -524,6 +624,7 @@ $work_schedule = $schedule_result->fetch_assoc();
         </div>
     </div>
     
+<<<<<<< HEAD
     <!-- Internship Details Modal -->
     <div class="modal fade" id="internshipDetailsModal" tabindex="-1" aria-labelledby="internshipDetailsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -964,5 +1065,9 @@ $work_schedule = $schedule_result->fetch_assoc();
             </div>
         </div>
     </div>
+=======
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+>>>>>>> recovery-restore
 </body>
 </html>
