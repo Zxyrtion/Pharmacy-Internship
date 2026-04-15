@@ -8,22 +8,34 @@ $full_name = $_SESSION['full_name'];
 $success = '';
 $error   = '';
 
-// Ensure product_logs table exists (uses pharmacist_id to match existing schema)
-$conn->query("CREATE TABLE IF NOT EXISTS product_logs (
+// Ensure prescription_orders table exists (for customer prescriptions)
+$conn->query("CREATE TABLE IF NOT EXISTS prescription_orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     prescription_id INT NOT NULL,
-    order_id INT DEFAULT NULL,
+    customer_id INT DEFAULT NULL,
+    total_amount DECIMAL(10,2) DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'Pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)");
+
+// Ensure prescription_order_items table exists
+$conn->query("CREATE TABLE IF NOT EXISTS prescription_order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
     medicine_name VARCHAR(200) NOT NULL,
     generic_name VARCHAR(200) DEFAULT NULL,
-    quantity INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) DEFAULT 0,
-    total_price DECIMAL(10,2) DEFAULT 0,
+    amount DECIMAL(10,2) DEFAULT 0,
     sig VARCHAR(300) DEFAULT NULL,
-    pharmacist_id INT NOT NULL,
-    patient_name VARCHAR(200),
-    doctor_name VARCHAR(200),
-    log_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    FOREIGN KEY (order_id) REFERENCES prescription_orders(id) ON DELETE CASCADE
 )");
+
+// Product logs table should already exist - don't recreate it
+// The existing table has: order_id, prescription_id, medicine_id, medicine_name, dosage, 
+// quantity_dispensed, unit_price, total_price, pharmacist_id, patient_id, patient_name, 
+// action, notes, log_date, created_at
 
 // Handle dispense confirmation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) {
@@ -39,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) 
     } else {
 
     // Load order items and log them
-    $so = $conn->prepare("SELECT * FROM purchase_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
+    $so = $conn->prepare("SELECT * FROM prescription_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
     $so->bind_param('i', $rx_id); $so->execute();
     $order = $so->get_result()->fetch_assoc();
 
@@ -48,20 +60,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) 
     $rx = $sr->get_result()->fetch_assoc();
 
     if ($order && $rx) {
-        $si = $conn->prepare("SELECT * FROM purchase_order_items WHERE order_id=?");
+        $si = $conn->prepare("SELECT * FROM prescription_order_items WHERE order_id=?");
         $si->bind_param('i', $order['id']); $si->execute();
         $items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
 
-        $stmt = $conn->prepare("INSERT INTO product_logs (prescription_id, order_id, medicine_name, generic_name, quantity, unit_price, total_price, sig, pharmacist_id, patient_name, doctor_name) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-        foreach ($items as $item) {
-            $stmt->bind_param('iissiddssss',
-                $rx_id, $order['id'],
-                $item['medicine_name'], $item['generic_name'],
-                $item['quantity'], $item['unit_price'], $item['amount'],
-                $item['sig'], $_SESSION['user_id'],
-                $rx['patient_name'], $rx['doctor_name']
-            );
-            $stmt->execute();
+        // Create an entry in the orders table (required for product_logs foreign key)
+        $order_id_str = 'ORD-' . date('Ymd') . '-' . str_pad($rx_id, 4, '0', STR_PAD_LEFT);
+        $customer_id = $rx['customer_id'] ?? 0;
+        $customer_name = $rx['patient_name'] ?? '';
+        $total_amount = $order['total_amount'] ?? 0;
+        $pharmacist_id = $_SESSION['user_id'];
+        
+        $insert_order = $conn->prepare("INSERT INTO orders (order_id, prescription_id, customer_id, customer_name, order_type, total_amount, status, pharmacist_id, order_date) VALUES (?,?,?,?,'Prescription',?,'Ready',?,NOW())");
+        $insert_order->bind_param('siisdi', 
+            $order_id_str, 
+            $rx_id, 
+            $customer_id, 
+            $customer_name,
+            $total_amount,
+            $pharmacist_id
+        );
+        $insert_order->execute();
+        $orders_table_id = $insert_order->insert_id;
+
+        $stmt = $conn->prepare("INSERT INTO product_logs (prescription_id, order_id, medicine_name, dosage, quantity_dispensed, quantity, unit_price, total_price, pharmacist_id, patient_id, patient_name, doctor_name, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        if ($stmt === false) {
+            $error = 'Database error preparing product_logs insert: ' . $conn->error;
+        } else {
+            foreach ($items as $item) {
+                // Assign to variables for bind_param (can't pass expressions by reference)
+                $medicine_name = $item['medicine_name'] ?? '';
+                $generic_name = $item['generic_name'] ?? '';
+                $quantity = $item['quantity'] ?? 0;
+                $unit_price = $item['unit_price'] ?? 0;
+                $amount = $item['amount'] ?? 0;
+                $patient_id = $rx['patient_id'] ?? 0;
+                $patient_name = $rx['patient_name'] ?? '';
+                $doctor_name = $rx['doctor_name'] ?? '';
+                $notes = 'Sig: ' . ($item['sig'] ?? '');
+                
+                $stmt->bind_param('iissiiddiisss',
+                    $rx_id, 
+                    $orders_table_id,
+                    $medicine_name, 
+                    $generic_name,
+                    $quantity,
+                    $quantity,  // Both quantity_dispensed and quantity
+                    $unit_price, 
+                    $amount,
+                    $pharmacist_id,
+                    $patient_id,
+                    $patient_name,
+                    $doctor_name,
+                    $notes
+                );
+                $stmt->execute();
+            }
         }
 
         // Mark prescription as Ready (awaiting customer payment)
@@ -79,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) 
 $res = $conn->query("SELECT p.*, CONCAT(u.first_name,' ',u.last_name) AS customer_name, o.total_amount
     FROM prescriptions p
     LEFT JOIN users u ON p.customer_id = u.id
-    LEFT JOIN purchase_orders o ON o.prescription_id = p.id
+    LEFT JOIN prescription_orders o ON o.prescription_id = p.id
     WHERE p.status = 'Processing'
     ORDER BY p.created_at DESC");
 $ready_prescriptions = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
@@ -90,23 +144,35 @@ if (isset($_GET['rx_id'])) {
     $vid = (int)$_GET['rx_id'];
     $sv = $conn->prepare("SELECT p.*, CONCAT(u.first_name,' ',u.last_name) AS customer_name
         FROM prescriptions p LEFT JOIN users u ON p.customer_id = u.id WHERE p.id=?");
+    if ($sv === false) {
+        die("Error preparing prescription query: " . $conn->error);
+    }
     $sv->bind_param('i', $vid); $sv->execute();
     $view_rx = $sv->get_result()->fetch_assoc();
 
-    $so = $conn->prepare("SELECT * FROM purchase_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
+    $so = $conn->prepare("SELECT * FROM prescription_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
+    if ($so === false) {
+        die("Error preparing prescription_orders query: " . $conn->error);
+    }
     $so->bind_param('i', $vid); $so->execute();
     $view_order = $so->get_result()->fetch_assoc();
 
     if ($view_order) {
-        $si = $conn->prepare("SELECT * FROM purchase_order_items WHERE order_id=?");
+        $si = $conn->prepare("SELECT * FROM prescription_order_items WHERE order_id=?");
+        if ($si === false) {
+            die("Error preparing prescription_order_items query: " . $conn->error . "<br><br>The 'prescription_order_items' table may not exist. Please create it first.");
+        }
         $si->bind_param('i', $view_order['id']); $si->execute();
         $view_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 }
 
 // Recent logs
-$logs_res = $conn->query("SELECT pl.*, u.first_name, u.last_name FROM product_logs pl
+$logs_res = $conn->query("SELECT pl.*, u.first_name, u.last_name, 
+    COALESCE(pl.doctor_name, p.doctor_name) as doctor_name
+    FROM product_logs pl
     LEFT JOIN users u ON u.id = pl.pharmacist_id
+    LEFT JOIN prescriptions p ON p.id = pl.prescription_id
     ORDER BY pl.log_date DESC LIMIT 20");
 $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
 ?>
@@ -157,15 +223,15 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
     <!-- DISPENSE DETAIL VIEW -->
     <div class="page-card">
         <div class="rx-header">
-            <h4><?= htmlspecialchars($view_rx['doctor_name']) ?></h4>
-            <p><?= htmlspecialchars($view_rx['doctor_specialization']) ?></p>
+            <h4><?= htmlspecialchars($view_rx['doctor_name'] ?? '') ?></h4>
+            <p><?= htmlspecialchars($view_rx['doctor_specialization'] ?? '') ?></p>
         </div>
 
         <div class="row mb-3">
-            <div class="col-md-3"><strong>Date:</strong> <?= htmlspecialchars($view_rx['prescription_date']) ?></div>
-            <div class="col-md-3"><strong>Patient:</strong> <?= htmlspecialchars($view_rx['patient_name']) ?></div>
+            <div class="col-md-3"><strong>Date:</strong> <?= htmlspecialchars($view_rx['prescription_date'] ?? '') ?></div>
+            <div class="col-md-3"><strong>Patient:</strong> <?= htmlspecialchars($view_rx['patient_name'] ?? '') ?></div>
             <div class="col-md-3"><strong>Customer:</strong> <?= htmlspecialchars($view_rx['customer_name'] ?? '-') ?></div>
-            <div class="col-md-3"><strong>Total:</strong> ₱<?= number_format($view_order['total_amount'], 2) ?></div>
+            <div class="col-md-3"><strong>Total:</strong> ₱<?= number_format($view_order['total_amount'] ?? 0, 2) ?></div>
         </div>
 
         <div class="text-center fw-bold my-3" style="letter-spacing:2px;">PRESCRIPTION</div>
@@ -187,22 +253,22 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
                     <?php foreach ($view_items as $item):
                         // Check stock
                         $stock_stmt = $conn->prepare("SELECT stock_quantity FROM medicines WHERE medicine_name LIKE ? LIMIT 1");
-                        $med_search = '%' . $item['medicine_name'] . '%';
+                        $med_search = '%' . ($item['medicine_name'] ?? '') . '%';
                         $stock_stmt->bind_param('s', $med_search); $stock_stmt->execute();
                         $stock_row = $stock_stmt->get_result()->fetch_assoc();
                         $stock = $stock_row['stock_quantity'] ?? null;
                     ?>
                     <tr>
-                        <td><?= htmlspecialchars($item['medicine_name']) ?></td>
-                        <td><?= htmlspecialchars($item['generic_name']) ?></td>
-                        <td><?= $item['quantity'] ?></td>
-                        <td><?= htmlspecialchars($item['sig']) ?></td>
-                        <td>₱<?= number_format($item['unit_price'], 2) ?></td>
-                        <td>₱<?= number_format($item['amount'], 2) ?></td>
+                        <td><?= htmlspecialchars($item['medicine_name'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($item['generic_name'] ?? '') ?></td>
+                        <td><?= $item['quantity'] ?? 0 ?></td>
+                        <td><?= htmlspecialchars($item['sig'] ?? '') ?></td>
+                        <td>₱<?= number_format($item['unit_price'] ?? 0, 2) ?></td>
+                        <td>₱<?= number_format($item['amount'] ?? 0, 2) ?></td>
                         <td>
                             <?php if ($stock === null): ?>
                                 <span class="badge bg-secondary">N/A</span>
-                            <?php elseif ($stock >= $item['quantity']): ?>
+                            <?php elseif ($stock >= ($item['quantity'] ?? 0)): ?>
                                 <span class="badge bg-success"><i class="bi bi-check"></i> In Stock (<?= $stock ?>)</span>
                             <?php else: ?>
                                 <span class="badge bg-danger"><i class="bi bi-x"></i> Low (<?= $stock ?>)</span>
@@ -214,7 +280,7 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
                 <tfoot>
                     <tr style="background:#f0f4ff; font-weight:700;">
                         <td colspan="5" class="text-end">TOTAL:</td>
-                        <td colspan="2">₱<?= number_format($view_order['total_amount'], 2) ?></td>
+                        <td colspan="2">₱<?= number_format($view_order['total_amount'] ?? 0, 2) ?></td>
                     </tr>
                 </tfoot>
             </table>
@@ -228,8 +294,8 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
             </div>
             <div class="card-body">
                 <p>Confirm all medicines have been prepared and handed to the customer.</p>
-                <form method="POST">
-                    <input type="hidden" name="prescription_id" value="<?= $view_rx['id'] ?>">
+                <form method="POST" action="">
+                    <input type="hidden" name="prescription_id" value="<?= $view_rx['id'] ?? 0 ?>">
                     <div class="d-flex gap-2">
                         <button type="submit" name="confirm_dispense" value="1" class="btn btn-success px-4">
                             <i class="bi bi-check-circle"></i> Confirm Dispensed to Customer
@@ -268,14 +334,14 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
                 <tbody>
                     <?php foreach ($ready_prescriptions as $rx): ?>
                     <tr>
-                        <td>#<?= $rx['id'] ?></td>
-                        <td><?= htmlspecialchars($rx['patient_name']) ?></td>
-                        <td><?= htmlspecialchars($rx['doctor_name']) ?></td>
+                        <td>#<?= $rx['id'] ?? 0 ?></td>
+                        <td><?= htmlspecialchars($rx['patient_name'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($rx['doctor_name'] ?? '') ?></td>
                         <td><?= htmlspecialchars($rx['customer_name'] ?? '-') ?></td>
-                        <td><?= htmlspecialchars($rx['prescription_date']) ?></td>
+                        <td><?= htmlspecialchars($rx['prescription_date'] ?? '') ?></td>
                         <td>₱<?= number_format($rx['total_amount'] ?? 0, 2) ?></td>
                         <td>
-                            <a href="?rx_id=<?= $rx['id'] ?>" class="btn btn-sm btn-success">
+                            <a href="?rx_id=<?= $rx['id'] ?? 0 ?>" class="btn btn-sm btn-success">
                                 <i class="bi bi-bag-check"></i> Dispense
                             </a>
                         </td>
@@ -309,12 +375,12 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
                 <tbody>
                     <?php foreach ($recent_logs as $log): ?>
                     <tr>
-                        <td><?= date('M j, Y H:i', strtotime($log['log_date'])) ?></td>
-                        <td><?= htmlspecialchars($log['patient_name']) ?></td>
+                        <td><?= date('M j, Y H:i', strtotime($log['log_date'] ?? 'now')) ?></td>
+                        <td><?= htmlspecialchars($log['patient_name'] ?? '') ?></td>
                         <td><?= htmlspecialchars($log['doctor_name'] ?? '-') ?></td>
-                        <td><?= htmlspecialchars($log['medicine_name']) ?></td>
-                        <td><?= $log['quantity'] ?></td>
-                        <td>₱<?= number_format($log['total_price'], 2) ?></td>
+                        <td><?= htmlspecialchars($log['medicine_name'] ?? '') ?></td>
+                        <td><?= $log['quantity'] ?? 0 ?></td>
+                        <td>₱<?= number_format($log['total_price'] ?? 0, 2) ?></td>
                         <td><?= htmlspecialchars(($log['first_name'] ?? '') . ' ' . ($log['last_name'] ?? '')) ?></td>
                     </tr>
                     <?php endforeach; ?>

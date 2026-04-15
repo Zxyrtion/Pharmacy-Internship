@@ -5,12 +5,20 @@ if ($_SESSION['role_name'] !== 'Customer') { header('Location: ../../index.php')
 
 $full_name = $_SESSION['full_name'];
 
-// Load orders with items
+// Load prescriptions grouped by prescription_id
 $orders = [];
-if ($s = $conn->prepare("SELECT p.*, o.id as order_id, o.total_amount, o.order_date
+if ($s = $conn->prepare("SELECT 
+    p.prescription_id,
+    p.customer_id,
+    p.patient_name,
+    p.doctor_name,
+    p.date_prescribed,
+    p.status,
+    MIN(p.id) as first_id,
+    COUNT(*) as item_count
     FROM prescriptions p
-    LEFT JOIN purchase_orders o ON o.prescription_id = p.id
     WHERE p.customer_id = ? AND p.status IN ('Processing','Ready','Dispensed')
+    GROUP BY p.prescription_id
     ORDER BY p.created_at DESC")) {
     $s->bind_param('i', $_SESSION['user_id']);
     $s->execute();
@@ -63,64 +71,56 @@ if ($s = $conn->prepare("SELECT p.*, o.id as order_id, o.total_amount, o.order_d
     </div>
     <?php else: ?>
     <?php foreach ($orders as $ord):
-        $items_stmt = $conn->prepare("SELECT * FROM purchase_order_items WHERE order_id=?");
-        $items_stmt->bind_param('i', $ord['order_id']);
+        // Get all items for this prescription
+        $items_stmt = $conn->prepare("SELECT * FROM prescriptions WHERE prescription_id=?");
+        $items_stmt->bind_param('s', $ord['prescription_id']);
         $items_stmt->execute();
         $items = $items_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        
+        // Calculate total (if prices are available)
+        $total = 0;
     ?>
     <div class="page-card mb-3">
         <div class="d-flex justify-content-between align-items-start mb-2">
             <div class="rx-header flex-grow-1">
                 <h6><?= htmlspecialchars($ord['doctor_name']) ?></h6>
-                <small><?= htmlspecialchars($ord['doctor_specialization']) ?></small>
             </div>
             <span class="badge badge-<?= strtolower($ord['status']) ?> ms-3"><?= $ord['status'] ?></span>
         </div>
 
         <div class="row mb-2 small">
-            <div class="col-md-3"><strong>Order #:</strong> <?= $ord['order_id'] ?></div>
-            <div class="col-md-3"><strong>Rx Date:</strong> <?= $ord['prescription_date'] ?></div>
-            <div class="col-md-3"><strong>Patient:</strong> <?= htmlspecialchars($ord['patient_name']) ?></div>
-            <div class="col-md-3"><strong>Order Date:</strong> <?= $ord['order_date'] ?? '-' ?></div>
+            <div class="col-md-4"><strong>Prescription ID:</strong> <?= htmlspecialchars($ord['prescription_id']) ?></div>
+            <div class="col-md-4"><strong>Date:</strong> <?= $ord['date_prescribed'] ?></div>
+            <div class="col-md-4"><strong>Patient:</strong> <?= htmlspecialchars($ord['patient_name']) ?></div>
         </div>
 
-        <div class="text-center fw-bold mb-2" style="letter-spacing:2px; font-size:0.9rem;">PRESCRIPTION</div>
+        <div class="text-center fw-bold mb-2" style="letter-spacing:2px; font-size:0.9rem;">PRESCRIPTION ITEMS</div>
 
         <div class="table-responsive">
             <table class="table table-bordered med-table table-sm">
                 <thead>
                     <tr>
                         <th>Medicine Name</th>
-                        <th>Generic Name</th>
+                        <th>Dosage/Generic</th>
                         <th>Qty</th>
-                        <th>Sig.</th>
-                        <th>Unit Price</th>
-                        <th>Amount</th>
+                        <th>Instructions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($items as $item): ?>
                     <tr>
                         <td><?= htmlspecialchars($item['medicine_name']) ?></td>
-                        <td><?= htmlspecialchars($item['generic_name']) ?></td>
+                        <td><?= htmlspecialchars($item['dosage']) ?></td>
                         <td><?= $item['quantity'] ?></td>
-                        <td><?= htmlspecialchars($item['sig']) ?></td>
-                        <td>₱<?= number_format($item['unit_price'], 2) ?></td>
-                        <td>₱<?= number_format($item['amount'], 2) ?></td>
+                        <td><?= htmlspecialchars($item['instructions']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
-                <tfoot>
-                    <tr style="background:#f0f4ff; font-weight:700;">
-                        <td colspan="5" class="text-end">TOTAL:</td>
-                        <td>₱<?= number_format($ord['total_amount'] ?? 0, 2) ?></td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
         <p class="validity-note">This prescription is valid for THREE (3) MONTHS from the date of issue.</p>
         <?php if ($ord['status'] === 'Ready'): ?>
-        <a href="payment.php?rx_id=<?= $ord['id'] ?>" class="btn btn-success btn-sm">
+        <a href="payment.php?rx_id=<?= htmlspecialchars($ord['prescription_id']) ?>" class="btn btn-success btn-sm">
             <i class="bi bi-cash"></i> Pay Now
         </a>
         <?php endif; ?>

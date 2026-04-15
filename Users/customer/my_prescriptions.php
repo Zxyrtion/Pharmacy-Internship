@@ -6,11 +6,14 @@ if ($_SESSION['role_name'] !== 'Customer') { header('Location: ../../index.php')
 
 $full_name = $_SESSION['full_name'];
 
-// Load prescriptions with error handling
+// Load prescriptions grouped by prescription_id (same as dashboard)
 $prescriptions = [];
-if ($s = $conn->prepare("SELECT p.*, o.total_amount FROM prescriptions p
-    LEFT JOIN purchase_orders o ON o.prescription_id = p.id
-    WHERE p.customer_id = ? ORDER BY p.created_at DESC")) {
+if ($s = $conn->prepare("SELECT p.id, p.prescription_id, p.date_prescribed as prescription_date, 
+    p.patient_name, p.doctor_name, p.status, p.created_at
+    FROM prescriptions p
+    WHERE p.customer_id = ?
+    GROUP BY p.prescription_id
+    ORDER BY p.created_at DESC")) {
     $s->bind_param('i', $_SESSION['user_id']);
     $s->execute();
     $prescriptions = $s->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -64,33 +67,41 @@ if ($s = $conn->prepare("SELECT p.*, o.total_amount FROM prescriptions p
             <table class="table table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th>#</th>
+                        <th>Order ID</th>
                         <th>Doctor</th>
                         <th>Patient</th>
-                        <th>Rx Date</th>
-                        <th>Total</th>
+                        <th>Date</th>
                         <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($prescriptions as $rx): ?>
+                    <?php foreach ($prescriptions as $rx): 
+                        $badge = match($rx['status']) {
+                            'Pending'    => 'warning text-dark',
+                            'Processing' => 'info text-dark',
+                            'Ready'      => 'success',
+                            'Dispensed'  => 'secondary',
+                            default      => 'secondary'
+                        };
+                    ?>
                     <tr>
-                        <td>#<?= $rx['id'] ?></td>
+                        <td><?= htmlspecialchars($rx['prescription_id']) ?></td>
                         <td><?= htmlspecialchars($rx['doctor_name']) ?></td>
                         <td><?= htmlspecialchars($rx['patient_name']) ?></td>
                         <td><?= htmlspecialchars($rx['prescription_date']) ?></td>
-                        <td><?= $rx['total_amount'] ? '₱' . number_format($rx['total_amount'], 2) : '-' ?></td>
-                        <td><span class="badge badge-<?= strtolower($rx['status']) ?>"><?= $rx['status'] ?></span></td>
+                        <td><span class="badge bg-<?= $badge ?>"><?= $rx['status'] ?></span></td>
                         <td>
                             <?php if ($rx['status'] === 'Ready'): ?>
-                                <a href="payment.php?rx_id=<?= $rx['id'] ?>" class="btn btn-sm btn-success">
+                                <a href="payment.php?rx_id=<?= htmlspecialchars($rx['prescription_id']) ?>" class="btn btn-sm btn-success">
                                     <i class="bi bi-cash"></i> Pay Now
                                 </a>
                             <?php elseif ($rx['status'] === 'Dispensed'): ?>
                                 <span class="text-success"><i class="bi bi-check-circle-fill"></i> Completed</span>
                             <?php else: ?>
-                                <span class="text-muted"><i class="bi bi-clock"></i> <?= $rx['status'] ?></span>
+                                <a href="purchase_order_view.php" class="btn btn-sm btn-info">
+                                    <i class="bi bi-eye"></i> View Details
+                                </a>
                             <?php endif; ?>
                         </td>
                     </tr>

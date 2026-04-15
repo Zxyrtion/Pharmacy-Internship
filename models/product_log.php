@@ -13,6 +13,10 @@ class ProductLog {
         $sql = "INSERT INTO product_logs (order_id, prescription_id, medicine_id, medicine_name, dosage, quantity_dispensed, unit_price, total_price, pharmacist_id, patient_id, patient_name, action, log_date) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Dispensed', NOW())";
         $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            error_log("Error preparing log dispense query: " . $this->conn->error);
+            return false;
+        }
         $stmt->bind_param("isisiidisiss", $order_id, $prescription_id, $medicine_id, $medicine_name, $dosage, $quantity, $unit_price, $total_price, $pharmacist_id, $patient_id, $patient_name);
         return $stmt->execute();
     }
@@ -33,6 +37,10 @@ class ProductLog {
                 WHERE pl.prescription_id = ? 
                 ORDER BY pl.log_date DESC";
         $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            error_log("Error preparing logs by prescription query: " . $this->conn->error);
+            return [];
+        }
         $stmt->bind_param("i", $prescription_id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -46,6 +54,10 @@ class ProductLog {
                 WHERE pl.medicine_id = ? 
                 ORDER BY pl.log_date DESC";
         $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            error_log("Error preparing logs by medicine query: " . $this->conn->error);
+            return [];
+        }
         $stmt->bind_param("i", $medicine_id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -59,6 +71,10 @@ class ProductLog {
                 WHERE pl.pharmacist_id = ? 
                 ORDER BY pl.log_date DESC";
         $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            error_log("Error preparing logs by pharmacist query: " . $this->conn->error);
+            return [];
+        }
         $stmt->bind_param("i", $pharmacist_id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -72,6 +88,10 @@ class ProductLog {
                 WHERE pl.patient_id = ? 
                 ORDER BY pl.log_date DESC";
         $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            error_log("Error preparing logs by patient query: " . $this->conn->error);
+            return [];
+        }
         $stmt->bind_param("i", $patient_id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -85,6 +105,10 @@ class ProductLog {
                 WHERE pl.log_date BETWEEN ? AND ? 
                 ORDER BY pl.log_date DESC";
         $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            error_log("Error preparing logs by date range query: " . $this->conn->error);
+            return [];
+        }
         $stmt->bind_param("ss", $start_date, $end_date);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -100,12 +124,16 @@ class ProductLog {
         $sql = "SELECT 
                 COUNT(DISTINCT prescription_id) as total_prescriptions,
                 COUNT(*) as total_items,
-                SUM(quantity) as total_quantity,
+                SUM(quantity_dispensed) as total_quantity,
                 SUM(total_price) as total_revenue,
                 COUNT(DISTINCT patient_name) as unique_patients
                 FROM product_logs 
                 WHERE DATE(log_date) = ?";
         $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            error_log("Error preparing daily dispensing report query: " . $this->conn->error);
+            return [];
+        }
         $stmt->bind_param("s", $date);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -116,13 +144,13 @@ class ProductLog {
     public function getProductSalesSummary() {
         $sql = "SELECT 
                 medicine_name,
-                generic_name,
+                dosage as generic_name,
                 COUNT(*) as dispensed_count,
-                SUM(quantity) as total_quantity,
+                SUM(quantity_dispensed) as total_quantity,
                 SUM(total_price) as total_revenue,
                 AVG(unit_price) as avg_price
                 FROM product_logs
-                GROUP BY medicine_name, generic_name
+                GROUP BY medicine_name, dosage
                 ORDER BY total_revenue DESC";
         $result = $this->conn->query($sql);
         return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
@@ -143,7 +171,7 @@ class ProductLog {
                 u.last_name,
                 COUNT(DISTINCT pl.prescription_id) as prescriptions_filled,
                 COUNT(*) as items_dispensed,
-                SUM(pl.quantity) as total_quantity,
+                SUM(pl.quantity_dispensed) as total_quantity,
                 SUM(pl.total_price) as total_revenue
                 FROM product_logs pl
                 LEFT JOIN users u ON pl.pharmacist_id = u.id
@@ -151,6 +179,10 @@ class ProductLog {
                 GROUP BY pl.pharmacist_id
                 ORDER BY total_revenue DESC";
         $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            error_log("Error preparing pharmacist performance query: " . $this->conn->error);
+            return [];
+        }
         $stmt->bind_param("ss", $start_date, $end_date);
         $stmt->execute();
         $result = $stmt->get_result();

@@ -82,24 +82,24 @@ $orders = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
                 <tbody>
                     <?php foreach ($orders as $ord): ?>
                     <tr>
-                        <td>#<?= $ord['id'] ?></td>
-                        <td><?= htmlspecialchars($ord['patient_name']) ?></td>
-                        <td><?= htmlspecialchars($ord['doctor_name']) ?></td>
+                        <td>#<?= $ord['id'] ?? 0 ?></td>
+                        <td><?= htmlspecialchars($ord['patient_name'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($ord['doctor_name'] ?? '') ?></td>
                         <td><?= htmlspecialchars($ord['customer_name'] ?? '-') ?></td>
-                        <td><?= htmlspecialchars($ord['prescription_date']) ?></td>
-                        <td><?= $ord['total_amount'] ? '₱'.number_format($ord['total_amount'],2) : '-' ?></td>
-                        <td><span class="badge badge-<?= strtolower($ord['status']) ?>"><?= $ord['status'] ?></span></td>
+                        <td><?= htmlspecialchars($ord['prescription_date'] ?? '') ?></td>
+                        <td><?= ($ord['total_amount'] ?? 0) ? '₱'.number_format($ord['total_amount'],2) : '-' ?></td>
+                        <td><span class="badge badge-<?= strtolower($ord['status'] ?? 'pending') ?>"><?= $ord['status'] ?? 'Pending' ?></span></td>
                         <td>
-                            <?php if ($ord['status'] === 'Processing'): ?>
-                                <a href="dispense_product.php?rx_id=<?= $ord['id'] ?>" class="btn btn-sm btn-success">
+                            <?php if (($ord['status'] ?? '') === 'Processing'): ?>
+                                <a href="dispense_product.php?rx_id=<?= $ord['id'] ?? 0 ?>" class="btn btn-sm btn-success">
                                     <i class="bi bi-bag-check"></i> Dispense
                                 </a>
-                            <?php elseif ($ord['status'] === 'Ready'): ?>
+                            <?php elseif (($ord['status'] ?? '') === 'Ready'): ?>
                                 <span class="text-success"><i class="bi bi-check-circle-fill"></i> Dispensed — Awaiting Payment</span>
-                            <?php elseif ($ord['status'] === 'Dispensed'): ?>
+                            <?php elseif (($ord['status'] ?? '') === 'Dispensed'): ?>
                                 <span class="text-secondary"><i class="bi bi-check-circle-fill"></i> Completed</span>
                             <?php else: ?>
-                                <span class="text-muted small"><?= $ord['status'] ?></span>
+                                <span class="text-muted small"><?= $ord['status'] ?? 'Unknown' ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>

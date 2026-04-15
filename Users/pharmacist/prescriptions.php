@@ -8,8 +8,8 @@ $full_name = $_SESSION['full_name'];
 $success = '';
 $error   = '';
 
-// Ensure tables exist
-$conn->query("CREATE TABLE IF NOT EXISTS purchase_orders (
+// Ensure tables exist - use prescription_orders for customer prescriptions
+$conn->query("CREATE TABLE IF NOT EXISTS prescription_orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     prescription_id INT NOT NULL,
     pharmacist_id INT,
@@ -19,7 +19,8 @@ $conn->query("CREATE TABLE IF NOT EXISTS purchase_orders (
     notes TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )");
-$conn->query("CREATE TABLE IF NOT EXISTS purchase_order_items (
+
+$conn->query("CREATE TABLE IF NOT EXISTS prescription_order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
     medicine_name VARCHAR(200),
@@ -46,24 +47,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_order'])) {
             $total += (int)($item['quantity'] ?? 1) * (float)($item['unit_price'] ?? 0);
         }
 
-        $stmt = $conn->prepare("INSERT INTO purchase_orders (prescription_id, pharmacist_id, order_date, total_amount, notes) VALUES (?,?,CURDATE(),?,?)");
-        $stmt->bind_param('iids', $rx_id, $_SESSION['user_id'], $total, $notes);
-        $stmt->execute();
-        $order_id = $stmt->insert_id;
+        $stmt = $conn->prepare("INSERT INTO prescription_orders (prescription_id, pharmacist_id, order_date, total_amount, notes) VALUES (?,?,CURDATE(),?,?)");
+        if ($stmt) {
+            $stmt->bind_param('iids', $rx_id, $_SESSION['user_id'], $total, $notes);
+            $stmt->execute();
+            $order_id = $stmt->insert_id;
 
-        $stmt2 = $conn->prepare("INSERT INTO purchase_order_items (order_id, medicine_name, generic_name, quantity, unit_price, amount, sig) VALUES (?,?,?,?,?,?,?)");
-        foreach ($filtered as $item) {
-            $med = $item['medicine_name']; $gen = $item['generic_name'] ?? '';
-            $qty = (int)($item['quantity'] ?? 1); $price = (float)($item['unit_price'] ?? 0);
-            $amt = $qty * $price; $sig = $item['sig'] ?? '';
-            $stmt2->bind_param('issidds', $order_id, $med, $gen, $qty, $price, $amt, $sig);
-            $stmt2->execute();
+            $stmt2 = $conn->prepare("INSERT INTO prescription_order_items (order_id, medicine_name, generic_name, quantity, unit_price, amount, sig) VALUES (?,?,?,?,?,?,?)");
+            if ($stmt2) {
+                foreach ($filtered as $item) {
+                    $med = $item['medicine_name']; $gen = $item['generic_name'] ?? '';
+                    $qty = (int)($item['quantity'] ?? 1); $price = (float)($item['unit_price'] ?? 0);
+                    $amt = $qty * $price; $sig = $item['sig'] ?? '';
+                    $stmt2->bind_param('issidds', $order_id, $med, $gen, $qty, $price, $amt, $sig);
+                    $stmt2->execute();
+                }
+            }
+
+            $upd = $conn->prepare("UPDATE prescriptions SET status='Processing' WHERE id=?");
+            if ($upd) {
+                $upd->bind_param('i', $rx_id);
+                $upd->execute();
+            }
+
+            $success = 'Purchase order created. Total: ₱' . number_format($total, 2);
+        } else {
+            $error = 'Database error: ' . $conn->error;
         }
-
-        $upd = $conn->prepare("UPDATE prescriptions SET status='Processing' WHERE id=?");
-        $upd->bind_param('i', $rx_id); $upd->execute();
-
-        $success = 'Purchase order created. Total: ₱' . number_format($total, 2);
     }
 }
 
@@ -93,18 +103,34 @@ if (isset($_GET['view'])) {
     $sv->bind_param('i', $vid); $sv->execute();
     $view_rx = $sv->get_result()->fetch_assoc();
 
-    $si = $conn->prepare("SELECT * FROM prescription_items WHERE prescription_id=?");
-    $si->bind_param('i', $vid); $si->execute();
-    $view_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
+    // Get all medicine items for this prescription_id
+    $si = $conn->prepare("SELECT * FROM prescriptions WHERE prescription_id=?");
+    if ($si) {
+        $si->bind_param('s', $view_rx['prescription_id']);
+        $si->execute();
+        $view_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
+    } else {
+        $view_items = [];
+    }
 
-    $so = $conn->prepare("SELECT * FROM purchase_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
-    $so->bind_param('i', $vid); $so->execute();
-    $view_order = $so->get_result()->fetch_assoc();
+    $so = $conn->prepare("SELECT * FROM prescription_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
+    if ($so) {
+        $so->bind_param('i', $vid);
+        $so->execute();
+        $view_order = $so->get_result()->fetch_assoc();
+    } else {
+        $view_order = null;
+    }
 
     if ($view_order) {
-        $soi = $conn->prepare("SELECT * FROM purchase_order_items WHERE order_id=?");
-        $soi->bind_param('i', $view_order['id']); $soi->execute();
-        $view_order_items = $soi->get_result()->fetch_all(MYSQLI_ASSOC);
+        $soi = $conn->prepare("SELECT * FROM prescription_order_items WHERE order_id=?");
+        if ($soi) {
+            $soi->bind_param('i', $view_order['id']);
+            $soi->execute();
+            $view_order_items = $soi->get_result()->fetch_all(MYSQLI_ASSOC);
+        } else {
+            $view_order_items = [];
+        }
     }
 }
 ?>
@@ -163,13 +189,13 @@ if (isset($_GET['view'])) {
     <div class="page-card">
         <div class="rx-header">
             <h4><?= htmlspecialchars($view_rx['doctor_name']) ?></h4>
-            <p><?= htmlspecialchars($view_rx['doctor_specialization']) ?></p>
+            <p><?= htmlspecialchars($view_rx['doctor_specialization'] ?? '') ?></p>
         </div>
 
         <div class="row mb-3">
-            <div class="col-md-3"><strong>Date:</strong> <?= htmlspecialchars($view_rx['prescription_date']) ?></div>
+            <div class="col-md-3"><strong>Date:</strong> <?= htmlspecialchars($view_rx['date_prescribed'] ?? $view_rx['prescription_date'] ?? '-') ?></div>
             <div class="col-md-3"><strong>Patient:</strong> <?= htmlspecialchars($view_rx['patient_name']) ?></div>
-            <div class="col-md-3"><strong>Age/Gender:</strong> <?= htmlspecialchars($view_rx['patient_age']) ?> / <?= htmlspecialchars($view_rx['patient_gender']) ?></div>
+            <div class="col-md-3"><strong>Age/Gender:</strong> <?= htmlspecialchars($view_rx['patient_age'] ?? '-') ?> / <?= htmlspecialchars($view_rx['patient_gender'] ?? '-') ?></div>
             <div class="col-md-3"><strong>Submitted by:</strong> <?= htmlspecialchars($view_rx['customer_name'] ?? '-') ?></div>
         </div>
         <div class="mb-3">
@@ -201,15 +227,15 @@ if (isset($_GET['view'])) {
                             <td><?= htmlspecialchars($item['medicine_name']) ?>
                                 <input type="hidden" name="order_items[<?= $i ?>][medicine_name]" value="<?= htmlspecialchars($item['medicine_name']) ?>">
                             </td>
-                            <td><?= htmlspecialchars($item['generic_name']) ?>
-                                <input type="hidden" name="order_items[<?= $i ?>][generic_name]" value="<?= htmlspecialchars($item['generic_name']) ?>">
-                                <input type="hidden" name="order_items[<?= $i ?>][sig]" value="<?= htmlspecialchars($item['sig']) ?>">
+                            <td><?= htmlspecialchars($item['dosage'] ?? $item['generic_name'] ?? '-') ?>
+                                <input type="hidden" name="order_items[<?= $i ?>][generic_name]" value="<?= htmlspecialchars($item['dosage'] ?? '') ?>">
+                                <input type="hidden" name="order_items[<?= $i ?>][sig]" value="<?= htmlspecialchars($item['instructions'] ?? '') ?>">
                             </td>
                             <td>
                                 <input type="number" name="order_items[<?= $i ?>][quantity]" class="form-control form-control-sm qty"
                                        value="<?= htmlspecialchars($item['quantity']) ?>" min="1" style="width:70px;">
                             </td>
-                            <td><?= htmlspecialchars($item['sig']) ?></td>
+                            <td><?= htmlspecialchars($item['instructions'] ?? $item['sig'] ?? '-') ?></td>
                             <td>
                                 <input type="number" name="order_items[<?= $i ?>][unit_price]" class="form-control form-control-sm price"
                                        step="0.01" min="0" placeholder="0.00" style="width:110px;" required>
@@ -227,7 +253,7 @@ if (isset($_GET['view'])) {
                 </table>
             </div>
 
-            <?php if ($view_rx['notes']): ?>
+            <?php if (!empty($view_rx['notes'])): ?>
             <div class="mb-3"><strong>Notes:</strong> <?= nl2br(htmlspecialchars($view_rx['notes'])) ?></div>
             <?php endif; ?>
             <p class="validity-note">This prescription is valid for THREE (3) MONTHS from the date of issue.</p>
@@ -267,9 +293,9 @@ if (isset($_GET['view'])) {
                     <?php foreach ($view_order_items as $item): ?>
                     <tr>
                         <td><?= htmlspecialchars($item['medicine_name']) ?></td>
-                        <td><?= htmlspecialchars($item['generic_name']) ?></td>
+                        <td><?= htmlspecialchars($item['generic_name'] ?? '-') ?></td>
                         <td><?= $item['quantity'] ?></td>
-                        <td><?= htmlspecialchars($item['sig']) ?></td>
+                        <td><?= htmlspecialchars($item['sig'] ?? '-') ?></td>
                         <td>₱<?= number_format($item['unit_price'], 2) ?></td>
                         <td>₱<?= number_format($item['amount'], 2) ?></td>
                         <td class="text-center"><i class="bi bi-clock text-warning"></i></td>
@@ -309,9 +335,9 @@ if (isset($_GET['view'])) {
                     <?php foreach ($view_order_items as $item): ?>
                     <tr>
                         <td><?= htmlspecialchars($item['medicine_name']) ?></td>
-                        <td><?= htmlspecialchars($item['generic_name']) ?></td>
+                        <td><?= htmlspecialchars($item['generic_name'] ?? '-') ?></td>
                         <td><?= $item['quantity'] ?></td>
-                        <td><?= htmlspecialchars($item['sig']) ?></td>
+                        <td><?= htmlspecialchars($item['sig'] ?? '-') ?></td>
                         <td>₱<?= number_format($item['unit_price'], 2) ?></td>
                         <td>₱<?= number_format($item['amount'], 2) ?></td>
                         <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
@@ -394,7 +420,7 @@ if (isset($_GET['view'])) {
                         <td><?= htmlspecialchars($rx['patient_name']) ?></td>
                         <td><?= htmlspecialchars($rx['doctor_name']) ?></td>
                         <td><?= htmlspecialchars($rx['customer_name'] ?? '-') ?></td>
-                        <td><?= htmlspecialchars($rx['prescription_date']) ?></td>
+                        <td><?= htmlspecialchars($rx['date_prescribed'] ?? $rx['prescription_date'] ?? '-') ?></td>
                         <td><span class="badge badge-<?= strtolower($rx['status']) ?>"><?= $rx['status'] ?></span></td>
                         <td class="no-print">
                             <a href="?view=<?= $rx['id'] ?>&status=<?= $filter ?>" class="btn btn-sm btn-primary">

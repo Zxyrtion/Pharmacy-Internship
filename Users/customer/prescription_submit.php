@@ -8,50 +8,14 @@ $full_name = $_SESSION['full_name'];
 $success = '';
 $errors = [];
 
-// Ensure tables
-$conn->query("CREATE TABLE IF NOT EXISTS prescriptions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    customer_id INT,
-    doctor_name VARCHAR(200),
-    doctor_specialization VARCHAR(200),
-    doctor_prc VARCHAR(50),
-    doctor_ptr VARCHAR(50),
-    doctor_clinic VARCHAR(300),
-    doctor_contact VARCHAR(100),
-    patient_name VARCHAR(200),
-    patient_age VARCHAR(10),
-    patient_gender VARCHAR(10),
-    patient_dob DATE NULL,
-    prescription_date DATE,
-    next_appointment DATE NULL,
-    notes TEXT NULL,
-    validity_months INT DEFAULT 3,
-    status ENUM('Pending','Processing','Ready','Dispensed','Cancelled') DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)");
-$conn->query("CREATE TABLE IF NOT EXISTS prescription_items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    prescription_id INT,
-    medicine_name VARCHAR(200),
-    generic_name VARCHAR(200),
-    quantity VARCHAR(50),
-    sig VARCHAR(300)
-)");
+// Note: Using existing prescriptions table structure
+// Table has: customer_id, prescription_id, patient_id, patient_name, medicine_name, 
+// dosage, quantity, instructions, doctor_name, date_prescribed, status
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $doctor_name   = trim($_POST['doctor_name'] ?? '');
-    $doctor_spec   = trim($_POST['doctor_specialization'] ?? '');
-    $doctor_prc    = trim($_POST['doctor_prc'] ?? '');
-    $doctor_ptr    = trim($_POST['doctor_ptr'] ?? '');
-    $doctor_clinic = trim($_POST['doctor_clinic'] ?? '');
-    $doctor_contact= trim($_POST['doctor_contact'] ?? '');
     $patient_name  = trim($_POST['patient_name'] ?? '');
-    $patient_age   = trim($_POST['patient_age'] ?? '');
-    $patient_gender= trim($_POST['patient_gender'] ?? '');
-    $patient_dob   = trim($_POST['patient_dob'] ?? '') ?: null;
     $rx_date       = trim($_POST['prescription_date'] ?? date('Y-m-d'));
-    $next_appt     = trim($_POST['next_appointment'] ?? '') ?: null;
-    $notes         = trim($_POST['notes'] ?? '');
     $items         = $_POST['items'] ?? [];
 
     if (empty($doctor_name))  $errors[] = 'Doctor name is required.';
@@ -62,27 +26,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($filtered)) $errors[] = 'At least one medicine is required.';
 
     if (empty($errors)) {
-        $stmt = $conn->prepare("INSERT INTO prescriptions
-            (customer_id, doctor_name, doctor_specialization, doctor_prc, doctor_ptr, doctor_clinic, doctor_contact,
-             patient_name, patient_age, patient_gender, patient_dob, prescription_date, next_appointment, notes)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        $stmt->bind_param('isssssssssssss',
-            $_SESSION['user_id'], $doctor_name, $doctor_spec, $doctor_prc, $doctor_ptr,
-            $doctor_clinic, $doctor_contact, $patient_name, $patient_age, $patient_gender,
-            $patient_dob, $rx_date, $next_appt, $notes);
-        $stmt->execute();
-        $rx_id = $stmt->insert_id;
-
-        $stmt2 = $conn->prepare("INSERT INTO prescription_items (prescription_id, medicine_name, generic_name, quantity, sig) VALUES (?,?,?,?,?)");
-        foreach ($filtered as $item) {
-            $med  = $item['medicine_name'];
-            $gen  = $item['generic_name'] ?? '';
-            $qty  = $item['quantity'] ?? '';
-            $sig  = $item['sig'] ?? '';
-            $stmt2->bind_param('issss', $rx_id, $med, $gen, $qty, $sig);
-            $stmt2->execute();
+        // Generate unique prescription_id
+        $prescription_id = 'RX-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        
+        // Get customer_id from session
+        $customer_id = (int)$_SESSION['user_id'];
+        
+        // Generate a unique patient_id (use timestamp + random for uniqueness)
+        // Or use customer_id if patient is the customer themselves
+        $patient_id = $customer_id;
+        
+        // Insert each medicine as a separate row (based on existing table structure)
+        $stmt = $conn->prepare("INSERT INTO prescriptions 
+            (customer_id, prescription_id, patient_id, patient_name, medicine_name, dosage, quantity, instructions, doctor_name, date_prescribed, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
+        
+        if ($stmt === false) {
+            $errors[] = 'Database error: ' . $conn->error;
+        } else {
+            $success_count = 0;
+            foreach ($filtered as $item) {
+                $med  = $item['medicine_name'];
+                $dosage = $item['generic_name'] ?? ''; // Using generic_name field as dosage
+                $qty  = $item['quantity'] ?? '1';
+                $instructions  = $item['sig'] ?? '';
+                
+                $stmt->bind_param('isiissssss',
+                    $customer_id, $prescription_id, $patient_id, $patient_name,
+                    $med, $dosage, $qty, $instructions, $doctor_name, $rx_date);
+                
+                if ($stmt->execute()) {
+                    $success_count++;
+                }
+            }
+            
+            if ($success_count > 0) {
+                $success = 'Prescription ' . $prescription_id . ' submitted successfully with ' . $success_count . ' medicine(s). Awaiting pharmacist processing.';
+            } else {
+                $errors[] = 'Failed to save prescription items.';
+            }
         }
-        $success = 'Prescription #' . $rx_id . ' submitted successfully. Awaiting pharmacist processing.';
     }
 }
 

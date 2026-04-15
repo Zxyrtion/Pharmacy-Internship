@@ -5,19 +5,36 @@ if ($_SESSION['role_name'] !== 'Customer') { header('Location: ../../index.php')
 
 $full_name = $_SESSION['full_name'];
 
-// Get customer's prescriptions with error handling
+// Get customer's prescriptions grouped by prescription_id
 $prescriptions = [];
-if ($s = $conn->prepare("SELECT p.*, o.total_amount
+if ($s = $conn->prepare("SELECT 
+    p.prescription_id,
+    p.customer_id,
+    p.patient_name,
+    p.doctor_name,
+    p.date_prescribed,
+    p.status,
+    MIN(p.id) as first_id,
+    MAX(p.created_at) as created_at,
+    COUNT(*) as item_count
     FROM prescriptions p
-    LEFT JOIN purchase_orders o ON o.prescription_id = p.id
     WHERE p.customer_id = ?
-    ORDER BY p.created_at DESC")) {
+    GROUP BY p.prescription_id
+    ORDER BY MAX(p.created_at) DESC")) {
     $s->bind_param('i', $_SESSION['user_id']);
     $s->execute();
     $prescriptions = $s->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-$steps = ['Pending' => 1, 'Processing' => 2, 'Ready' => 3, 'Dispensed' => 4];
+// Map status to step numbers - handle both old and new status values
+$steps = [
+    'Pending' => 1,
+    'Submitted' => 1,  // Alias for Pending
+    '' => 1,           // Empty status defaults to step 1
+    'Processing' => 2,
+    'Ready' => 3,
+    'Dispensed' => 4
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -62,6 +79,12 @@ $steps = ['Pending' => 1, 'Processing' => 2, 'Ready' => 3, 'Dispensed' => 4];
         <span></span>
     </div>
 
+    <?php if (isset($_GET['error']) && $_GET['error'] === 'not_ready'): ?>
+        <div class="alert alert-warning mt-2">
+            <i class="bi bi-exclamation-triangle"></i> This prescription is not ready for payment yet. Please wait for the pharmacy to dispense your medicines.
+        </div>
+    <?php endif; ?>
+
     <?php if (empty($prescriptions)): ?>
     <div class="page-card text-center text-muted py-5">
         <i class="bi bi-inbox" style="font-size:3rem;"></i>
@@ -69,19 +92,24 @@ $steps = ['Pending' => 1, 'Processing' => 2, 'Ready' => 3, 'Dispensed' => 4];
     </div>
     <?php else: ?>
     <?php foreach ($prescriptions as $rx):
-        $current_step = $steps[$rx['status']] ?? 1;
+        // Get current step, default to 1 if status not found
+        $status = $rx['status'] ?? 'Pending';
+        $current_step = $steps[$status] ?? 1;
     ?>
     <div class="page-card">
         <div class="d-flex justify-content-between align-items-center mb-1">
             <div>
-                <strong>#<?= $rx['id'] ?></strong> —
+                <strong><?= htmlspecialchars($rx['prescription_id']) ?></strong> —
                 <span style="color:#c0392b; font-style:italic;"><?= htmlspecialchars($rx['doctor_name']) ?></span>
             </div>
-            <span class="badge badge-<?= strtolower($rx['status']) ?>"><?= $rx['status'] ?></span>
+            <?php 
+            $display_status = $status ?: 'Pending';
+            $badge_class = strtolower($display_status);
+            ?>
+            <span class="badge badge-<?= $badge_class ?>"><?= htmlspecialchars($display_status) ?></span>
         </div>
         <div class="small text-muted mb-3">
-            Patient: <?= htmlspecialchars($rx['patient_name']) ?> | Rx Date: <?= $rx['prescription_date'] ?>
-            <?= $rx['total_amount'] ? ' | Total: ₱' . number_format($rx['total_amount'], 2) : '' ?>
+            Patient: <?= htmlspecialchars($rx['patient_name']) ?> | Date: <?= $rx['date_prescribed'] ?> | Items: <?= $rx['item_count'] ?>
         </div>
 
         <!-- Progress stepper -->
@@ -109,20 +137,20 @@ $steps = ['Pending' => 1, 'Processing' => 2, 'Ready' => 3, 'Dispensed' => 4];
             <?php endforeach; ?>
         </div>
 
-        <?php if ($rx['status'] === 'Ready'): ?>
+        <?php if ($status === 'Ready'): ?>
         <div class="alert alert-success py-2 mt-2">
             <i class="bi bi-check-circle-fill"></i> Your medicines are ready for pickup!
             <a href="payment.php?rx_id=<?= $rx['id'] ?>" class="btn btn-sm btn-success ms-2">Pay Now</a>
         </div>
-        <?php elseif ($rx['status'] === 'Processing'): ?>
+        <?php elseif ($status === 'Processing'): ?>
         <div class="alert alert-info py-2 mt-2">
             <i class="bi bi-hourglass-split"></i> Pharmacist is preparing your medicines. Please wait.
         </div>
-        <?php elseif ($rx['status'] === 'Pending'): ?>
+        <?php elseif ($status === 'Pending' || $status === '' || $status === 'Submitted'): ?>
         <div class="alert alert-warning py-2 mt-2">
             <i class="bi bi-clock"></i> Waiting for pharmacist to process your prescription.
         </div>
-        <?php elseif ($rx['status'] === 'Dispensed'): ?>
+        <?php elseif ($status === 'Dispensed'): ?>
         <div class="alert alert-secondary py-2 mt-2">
             <i class="bi bi-check-circle-fill"></i> Completed and paid.
         </div>

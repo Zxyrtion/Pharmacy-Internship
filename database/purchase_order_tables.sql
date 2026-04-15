@@ -1,12 +1,14 @@
 -- Purchase Order and Requisition Management Tables
 
 -- Table structure for requisitions
-CREATE TABLE `requisitions` (
+CREATE TABLE IF NOT EXISTS `requisitions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `requisition_id` varchar(20) NOT NULL,
   `pharmacist_id` int(11) NOT NULL,
   `pharmacist_name` varchar(100) NOT NULL,
+  `department` varchar(100) DEFAULT 'Pharmacy',
   `requisition_date` date NOT NULL,
+  `date_required` date DEFAULT NULL,
   `urgency` enum('Normal','Urgent','Critical') DEFAULT 'Normal',
   `status` enum('Draft','Submitted','Approved','Rejected','Processed') DEFAULT 'Draft',
   `total_amount` decimal(10,2) DEFAULT 0.00,

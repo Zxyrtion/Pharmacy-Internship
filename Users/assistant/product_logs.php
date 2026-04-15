@@ -246,7 +246,7 @@ $full_name = $_SESSION['full_name'];
                                             <td><?php echo htmlspecialchars($log['order_id']); ?></td>
                                             <td><?php echo htmlspecialchars($log['prescription_id']); ?></td>
                                             <td><?php echo htmlspecialchars($log['patient_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($log['medicine_name'] . ($log['generic_name'] ? ' (' . $log['generic_name'] . ')' : '')); ?></td>
+                                            <td><?php echo htmlspecialchars($log['medicine_name'] . (isset($log['dosage']) && $log['dosage'] ? ' (' . $log['dosage'] . ')' : '')); ?></td>
                                             <td><?php echo htmlspecialchars($log['quantity'] ?? $log['quantity_dispensed'] ?? '-'); ?></td>
                                             <td>₱<?php echo number_format($log['unit_price'], 2); ?></td>
                                             <td><strong>₱<?php echo number_format($log['total_price'], 2); ?></strong></td>
@@ -287,7 +287,7 @@ $full_name = $_SESSION['full_name'];
                             <?php if (!empty($sales_summary)): ?>
                                 <?php foreach ($sales_summary as $product): ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($product['medicine_name'] . ($product['generic_name'] ? ' (' . $product['generic_name'] . ')' : '')); ?></td>
+                                        <td><?php echo htmlspecialchars($product['medicine_name'] . (isset($product['generic_name']) && $product['generic_name'] ? ' (' . $product['generic_name'] . ')' : '')); ?></td>
                                         <td><?php echo htmlspecialchars($product['dispensed_count']); ?></td>
                                         <td><?php echo htmlspecialchars($product['total_quantity']); ?> units</td>
                                         <td><strong>₱<?php echo number_format($product['total_revenue'], 2); ?></strong></td>

@@ -22,26 +22,63 @@ $conn->query("CREATE TABLE IF NOT EXISTS payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )");
 
-$rx_id = (int)($_GET['rx_id'] ?? 0);
+$rx_id = $_GET['rx_id'] ?? '';
 if (!$rx_id) { header('Location: dashboard.php'); exit(); }
 
-$s = $conn->prepare("SELECT p.* FROM prescriptions p WHERE p.id=? AND p.customer_id=?");
-$s->bind_param('ii', $rx_id, $_SESSION['user_id']);
+// Check if rx_id is numeric (database id) or string (prescription_id)
+if (is_numeric($rx_id)) {
+    // It's a database ID
+    $s = $conn->prepare("SELECT p.* FROM prescriptions p WHERE p.id=? AND p.customer_id=?");
+    $s->bind_param('ii', $rx_id, $_SESSION['user_id']);
+} else {
+    // It's a prescription_id string (like RX-20260415-2305)
+    $s = $conn->prepare("SELECT p.* FROM prescriptions p WHERE p.prescription_id=? AND p.customer_id=? LIMIT 1");
+    $s->bind_param('si', $rx_id, $_SESSION['user_id']);
+}
 $s->execute();
 $rx = $s->get_result()->fetch_assoc();
 
-if (!$rx || $rx['status'] !== 'Ready') { header('Location: dashboard.php'); exit(); }
+if (!$rx) { 
+    header('Location: dashboard.php'); 
+    exit(); 
+}
+
+// Get the numeric ID for later use
+$rx_numeric_id = (int)$rx['id'];
+
+// Check if prescription is ready for payment
+if ($rx['status'] !== 'Ready') { 
+    // Redirect to track dispensing with a message
+    header('Location: track_dispensing.php?error=not_ready'); 
+    exit(); 
+}
 
 $so = $conn->prepare("SELECT * FROM purchase_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
-$so->bind_param('i', $rx_id);
+$so->bind_param('i', $rx_numeric_id);
 $so->execute();
 $order = $so->get_result()->fetch_assoc();
+
+// If no purchase_orders, try prescription_orders
+if (!$order) {
+    $so = $conn->prepare("SELECT * FROM prescription_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
+    $so->bind_param('i', $rx_numeric_id);
+    $so->execute();
+    $order = $so->get_result()->fetch_assoc();
+}
 
 $si = $conn->prepare("SELECT * FROM purchase_order_items WHERE order_id=?");
 $order_id_val = (int)($order['id'] ?? 0);
 $si->bind_param('i', $order_id_val);
 $si->execute();
 $order_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// If no purchase_order_items, try prescription_order_items
+if (empty($order_items) && $order_id_val > 0) {
+    $si = $conn->prepare("SELECT * FROM prescription_order_items WHERE order_id=?");
+    $si->bind_param('i', $order_id_val);
+    $si->execute();
+    $order_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
+}
 
 $amount_due = (float)($order['total_amount'] ?? 0);
 
@@ -57,12 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pay_paymongo'])) {
         ];
     }
 
-    $description = 'Prescription #' . $rx_id . ' - ' . $rx['patient_name'];
-    $result = createCheckoutSession($amount_due, $description, $rx_id, $line_items);
+    $description = 'Prescription #' . $rx_numeric_id . ' - ' . $rx['patient_name'];
+    $result = createCheckoutSession($amount_due, $description, $rx_numeric_id, $line_items);
 
     if ($result['success']) {
         $stmt = $conn->prepare("INSERT INTO payments (prescription_id, order_id, customer_id, amount_due, payment_method, paymongo_session_id, status) VALUES (?,?,?,?,'paymongo',?,'Pending')");
-        $stmt->bind_param('iiids', $rx_id, $order['id'], $_SESSION['user_id'], $amount_due, $result['session_id']);
+        $stmt->bind_param('iiids', $rx_numeric_id, $order['id'], $_SESSION['user_id'], $amount_due, $result['session_id']);
         $stmt->execute();
 
         header('Location: ' . $result['checkout_url']);
@@ -121,17 +158,34 @@ $cancelled = isset($_GET['cancelled']);
     <?php if ($cancelled): ?>
         <div class="alert alert-warning mt-2"><i class="bi bi-x-circle"></i> Payment was cancelled. You can try again below.</div>
     <?php endif; ?>
+    <?php if (defined('PAYMONGO_MOCK_MODE') && PAYMONGO_MOCK_MODE): ?>
+        <div class="alert alert-info mt-2">
+            <i class="bi bi-info-circle"></i> <strong>Development Mode:</strong> This system is using mock payment for testing. No real payment will be processed.
+        </div>
+    <?php endif; ?>
 
     <div class="page-card">
         <div class="rx-header">
-            <h4><?= htmlspecialchars($rx['doctor_name']) ?></h4>
+            <h4><?= htmlspecialchars($rx['doctor_name'] ?? 'N/A') ?></h4>
+            <?php if (!empty($rx['doctor_specialization'] ?? '')): ?>
             <p><?= htmlspecialchars($rx['doctor_specialization']) ?></p>
+            <?php endif; ?>
         </div>
 
         <div class="row mb-3">
-            <div class="col-md-4"><strong>Date:</strong> <?= htmlspecialchars($rx['prescription_date']) ?></div>
-            <div class="col-md-4"><strong>Patient:</strong> <?= htmlspecialchars($rx['patient_name']) ?></div>
-            <div class="col-md-4"><?= htmlspecialchars($rx['patient_age']) ?> / <?= htmlspecialchars($rx['patient_gender']) ?></div>
+            <div class="col-md-4"><strong>Date:</strong> <?= htmlspecialchars($rx['date_prescribed'] ?? date('Y-m-d')) ?></div>
+            <div class="col-md-4"><strong>Patient:</strong> <?= htmlspecialchars($rx['patient_name'] ?? 'N/A') ?></div>
+            <div class="col-md-4">
+                <?php 
+                $age = $rx['patient_age'] ?? '';
+                $gender = $rx['patient_gender'] ?? '';
+                if ($age || $gender) {
+                    echo htmlspecialchars($age);
+                    if ($age && $gender) echo ' / ';
+                    echo htmlspecialchars($gender);
+                }
+                ?>
+            </div>
         </div>
 
         <div class="text-center fw-bold my-3" style="letter-spacing:2px;">PRESCRIPTION</div>

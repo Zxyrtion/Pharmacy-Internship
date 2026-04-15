@@ -16,16 +16,52 @@ $payment = $sp->get_result()->fetch_assoc();
 
 $verified = false;
 $payment_method_used = '';
+$is_mock = isset($_GET['mock']) && $_GET['mock'] == '1';
 
-if ($payment && $payment['paymongo_session_id']) {
-    // Verify with PayMongo
+// Handle mock payment (development mode)
+if ($is_mock) {
+    $verified = true;
+    $payment_method_used = 'Mock Payment (Development)';
+    
+    // Create or update payment record
+    if ($payment) {
+        $mock_payment_id = 'mock_payment_' . uniqid();
+        $upd = $conn->prepare("UPDATE payments SET status='Paid', paymongo_payment_id=?, paid_at=NOW() WHERE id=?");
+        $upd->bind_param('si', $mock_payment_id, $payment['id']);
+        $upd->execute();
+    } else {
+        // Create new payment record
+        $sr_temp = $conn->prepare("SELECT o.total_amount FROM purchase_orders o WHERE o.prescription_id=? ORDER BY id DESC LIMIT 1");
+        $sr_temp->bind_param('i', $rx_id);
+        $sr_temp->execute();
+        $order_temp = $sr_temp->get_result()->fetch_assoc();
+        $amount = $order_temp['total_amount'] ?? 0;
+        
+        $mock_payment_id = 'mock_' . uniqid();
+        $ins = $conn->prepare("INSERT INTO payments (prescription_id, customer_id, amount_due, payment_method, paymongo_payment_id, status, paid_at) VALUES (?,?,?,'mock',?,'Paid',NOW())");
+        $ins->bind_param('iids', $rx_id, $_SESSION['user_id'], $amount, $mock_payment_id);
+        $ins->execute();
+    }
+    
+    // Mark prescription as Dispensed
+    $upd2 = $conn->prepare("UPDATE prescriptions SET status='Dispensed' WHERE id=?");
+    $upd2->bind_param('i', $rx_id);
+    $upd2->execute();
+    
+    // Mark order as Paid
+    $upd3 = $conn->prepare("UPDATE purchase_orders SET status='Paid' WHERE prescription_id=?");
+    $upd3->bind_param('i', $rx_id);
+    $upd3->execute();
+    
+} elseif ($payment && $payment['paymongo_session_id']) {
+    // Verify with PayMongo (real payment)
     $session = getCheckoutSession($payment['paymongo_session_id']);
     $status  = $session['data']['attributes']['status'] ?? '';
     $payment_method_used = $session['data']['attributes']['payment_method_used'] ?? '';
 
-    if ($status === 'active' || $status === 'completed') {
+    if ($status === 'active' || $status === 'completed' || $status === 'paid') {
         $verified = true;
-        $payment_id = $session['data']['attributes']['payments'][0]['id'] ?? null;
+        $payment_id = $session['data']['attributes']['payments'][0]['id'] ?? $payment['paymongo_session_id'];
 
         // Update payment record
         $upd = $conn->prepare("UPDATE payments SET status='Paid', paymongo_payment_id=?, paid_at=NOW() WHERE id=?");
@@ -33,7 +69,6 @@ if ($payment && $payment['paymongo_session_id']) {
         $upd->execute();
 
         // Mark prescription as Dispensed
-        $conn->prepare("UPDATE prescriptions SET status='Dispensed' WHERE id=?")->bind_param('i', $rx_id);
         $upd2 = $conn->prepare("UPDATE prescriptions SET status='Dispensed' WHERE id=?");
         $upd2->bind_param('i', $rx_id);
         $upd2->execute();
