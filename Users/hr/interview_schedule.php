@@ -133,6 +133,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update_stmt->execute();
                 
                 $success = "$assigned_count applicant(s) assigned to interview schedule and notified!";
+                
+                // Set session variables for modal
+                $_SESSION['interview_assigned_success'] = true;
+                $_SESSION['interview_assigned_count'] = $assigned_count;
+                $_SESSION['interview_date'] = $schedule_info['interview_date'];
+                $_SESSION['interview_time'] = $schedule_info['interview_time'];
             } else {
                 $error = "Please select at least one applicant.";
             }
@@ -622,6 +628,56 @@ $next_batch = $batch_result->fetch_assoc()['next_batch'];
             const checkboxes = document.querySelectorAll('.applicant-checkbox');
             checkboxes.forEach(cb => cb.checked = checkbox.checked);
         }
+    </script>
+
+    <!-- Interview Success Modal -->
+    <div class="modal fade" id="interviewSuccessModal" tabindex="-1" aria-labelledby="interviewSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="interviewSuccessModalLabel">
+                        <i class="bi bi-calendar-check"></i> Interview Schedule Updated!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-calendar-check text-info" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="mb-3">Interviews Scheduled Successfully!</h5>
+                        <p class="mb-2"><strong>Applicants Assigned:</strong> <?php echo $_SESSION['interview_assigned_count'] ?? 0; ?></p>
+                        <p class="mb-2"><strong>Interview Date:</strong> <?php echo htmlspecialchars($_SESSION['interview_date'] ?? ''); ?></p>
+                        <p class="mb-2"><strong>Interview Time:</strong> <?php echo htmlspecialchars($_SESSION['interview_time'] ?? ''); ?></p>
+                        <p class="text-muted mb-0">All applicants have been notified and can view interview details in their dashboard.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="dashboard.php" class="btn btn-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Show interview success modal if interviews were assigned
+        <?php if (isset($_SESSION['interview_assigned_success']) && $_SESSION['interview_assigned_success']): ?>
+            const interviewModal = new bootstrap.Modal(document.getElementById('interviewSuccessModal'));
+            interviewModal.show();
+            
+            // Clear the session variable after showing modal
+            setTimeout(() => {
+                <?php 
+                unset($_SESSION['interview_assigned_success']); 
+                unset($_SESSION['interview_assigned_count']); 
+                unset($_SESSION['interview_date']); 
+                unset($_SESSION['interview_time']); 
+                ?>
+            }, 500);
+        <?php endif; ?>
     </script>
 </body>
 </html>
