@@ -16,13 +16,16 @@ $full_name = $_SESSION['full_name'] ?? 'Intern';
 
 $routine_table = 'internship_routine';
 
+// Add status column if it doesn't exist yet
+$conn->query("ALTER TABLE `{$routine_table}` ADD COLUMN IF NOT EXISTS `status` VARCHAR(20) NOT NULL DEFAULT 'pending'");
+
 // Update task status (Intern can only update their own tasks)
 $flash_success = '';
 $flash_error   = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $task_id    = isset($_POST['task_id']) ? (int)$_POST['task_id'] : 0;
     $new_status = isset($_POST['status']) ? trim($_POST['status']) : '';
-    $allowed_status = ['pending', 'finished'];
+    $allowed_status = ['pending', 'finished', 'late'];
 
     if ($task_id <= 0 || !in_array($new_status, $allowed_status, true)) {
         $flash_error = 'Invalid status update.';
@@ -52,7 +55,7 @@ if ($mark_stmt) {
 }
 
 $tasks = [];
-$stmt  = $conn->prepare("SELECT id, title, duties AS description, date_from, date_to AS due_date, file_path, created_at
+$stmt  = $conn->prepare("SELECT id, title, duties AS description, date_from, date_to AS due_date, file_path, status, created_at
                          FROM `{$routine_table}`
                          WHERE assigned_to = ?
                          ORDER BY created_at DESC
@@ -107,6 +110,9 @@ if ($stmt) {
         }
         .btn-logout:hover { background: #c0392b; color: white; }
         .task-title { font-weight: 600; }
+        .badge-pending  { background-color: #ffc107; color: #000; }
+        .badge-finished { background-color: #198754; color: #fff; }
+        .badge-late     { background-color: #dc3545; color: #fff; }
     </style>
 </head>
 <body>
@@ -154,12 +160,26 @@ if ($stmt) {
                                 <tr>
                                     <th>Task</th>
                                     <th>Date Range</th>
+                                    <th>Status</th>
                                     <th>Attachment</th>
                                     <th>Assigned</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($tasks as $t): ?>
+                                    <?php
+                                        $st      = $t['status'] ?? 'pending';
+                                        $today   = date('Y-m-d');
+                                        // Auto-suggest late if past due and not finished
+                                        if ($st === 'pending' && !empty($t['due_date']) && $t['due_date'] < $today) {
+                                            $st = 'late';
+                                        }
+                                        $badge_class = match($st) {
+                                            'finished' => 'badge-finished',
+                                            'late'     => 'badge-late',
+                                            default    => 'badge-pending',
+                                        };
+                                    ?>
                                     <tr>
                                         <td>
                                             <div class="task-title"><?php echo htmlspecialchars($t['title']); ?></div>
@@ -169,6 +189,18 @@ if ($stmt) {
                                             <small class="text-muted">
                                                 <?php echo htmlspecialchars(($t['date_from'] ?? '—') . ' → ' . ($t['due_date'] ?: '—')); ?>
                                             </small>
+                                        </td>
+                                        <td>
+                                            <form method="post" action="" class="d-flex align-items-center gap-2">
+                                                <input type="hidden" name="task_id" value="<?php echo (int)$t['id']; ?>">
+                                                <select name="status" class="form-select form-select-sm" style="min-width:120px;">
+                                                    <option value="pending"  <?php echo ($st === 'pending')  ? 'selected' : ''; ?>>Pending</option>
+                                                    <option value="finished" <?php echo ($st === 'finished') ? 'selected' : ''; ?>>Finished</option>
+                                                    <option value="late"     <?php echo ($st === 'late')     ? 'selected' : ''; ?>>Late</option>
+                                                </select>
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                                            </form>
+                                            <span class="badge <?php echo $badge_class; ?> mt-1"><?php echo ucfirst($st); ?></span>
                                         </td>
                                         <td>
                                             <?php if (!empty($t['file_path'])): ?>
