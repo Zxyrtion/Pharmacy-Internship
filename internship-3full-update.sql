@@ -3,11 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
-<<<<<<< HEAD
--- Generation Time: Apr 14, 2026 at 01:59 PM
-=======
--- Generation Time: Apr 14, 2026 at 04:55 AM
->>>>>>> recovery-restore
+-- Generation Time: Apr 15, 2026 at 05:20 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -24,61 +20,6 @@ SET time_zone = "+00:00";
 --
 -- Database: `internship`
 --
-
--- --------------------------------------------------------
-
---
-<<<<<<< HEAD
--- Table structure for table `attendance`
---
-
-CREATE TABLE `attendance` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `work_schedule_id` int(11) NOT NULL,
-  `attendance_date` date NOT NULL,
-  `scheduled_shift_start` time NOT NULL,
-  `scheduled_shift_end` time NOT NULL,
-  `clock_in_time` datetime DEFAULT NULL,
-  `clock_out_time` datetime DEFAULT NULL,
-  `status` enum('present','absent','late','half_day','excused','on_leave') DEFAULT 'absent',
-  `is_late` tinyint(1) DEFAULT 0,
-  `late_minutes` int(11) DEFAULT 0,
-  `is_early_out` tinyint(1) DEFAULT 0,
-  `early_out_minutes` int(11) DEFAULT 0,
-  `total_hours_worked` decimal(5,2) DEFAULT 0.00,
-  `remarks` text DEFAULT NULL,
-  `excuse_reason` text DEFAULT NULL,
-  `requires_approval` tinyint(1) DEFAULT 0,
-  `approved_by` int(11) DEFAULT NULL,
-  `approval_status` enum('pending','approved','rejected') DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `attendance_summary`
---
-
-CREATE TABLE `attendance_summary` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `work_schedule_id` int(11) NOT NULL,
-  `summary_period` enum('weekly','monthly') NOT NULL,
-  `period_start_date` date NOT NULL,
-  `period_end_date` date NOT NULL,
-  `total_days_scheduled` int(11) DEFAULT 0,
-  `total_days_present` int(11) DEFAULT 0,
-  `total_days_absent` int(11) DEFAULT 0,
-  `total_days_late` int(11) DEFAULT 0,
-  `total_days_excused` int(11) DEFAULT 0,
-  `total_hours_worked` decimal(8,2) DEFAULT 0.00,
-  `attendance_rate` decimal(5,2) DEFAULT 0.00,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -119,6 +60,13 @@ CREATE TABLE `internship_applications` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `internship_applications`
+--
+
+INSERT INTO `internship_applications` (`id`, `user_id`, `application_date`, `status`, `review_notes`, `reviewed_by`, `review_date`, `created_at`, `updated_at`) VALUES
+(6, 16, '2026-04-15 06:33:25', 'approved', 'Approved for internship position', NULL, NULL, '2026-04-15 06:33:25', '2026-04-15 06:33:25');
 
 -- --------------------------------------------------------
 
@@ -180,7 +128,50 @@ CREATE TABLE `internship_records` (
 --
 
 INSERT INTO `internship_records` (`id`, `user_id`, `first_name`, `last_name`, `date_of_birth`, `is_enrolled_higher_ed`, `higher_ed_institution`, `enrollment_certificate_path`, `enrollment_certificate_status`, `enrollment_certificate_remarks`, `is_enrolled_internship_subject`, `is_at_least_18`, `has_passed_pre_internship`, `recommendation_letter_path`, `recommendation_letter_status`, `recommendation_letter_remarks`, `medical_certificate_submitted`, `medical_certificate_path`, `medical_certificate_status`, `medical_certificate_remarks`, `parental_consent_submitted`, `parental_consent_path`, `parental_consent_status`, `parental_consent_remarks`, `is_eligible`, `application_status`, `internship_start_date`, `internship_duration`, `working_days`, `working_hours`, `special_instructions`, `pharmacy_name`, `pharmacy_address`, `contact_person`, `contact_number`, `contact_email`, `schedule_sent`, `interview_scheduled`, `interview_date`, `interview_time`, `interview_type`, `interview_location`, `interview_meeting_link`, `interview_notes`, `created_at`, `updated_at`) VALUES
-(27, 16, 'Dave', 'Dela Cerna', '2004-03-14', 1, 'Davao Central college', 'enrollment_certificate_1776158127.pdf', 'valid', '', 1, 1, 1, 'recommendation_letter_1776158132.pdf', 'valid', '', 1, 'medical_certificate_1776158137.pdf', 'valid', '', 1, 'parental_consent_1776158142.pdf', 'valid', '', 1, 'approved', '2026-04-14', '480 hours', 'Monday - Friday', '8:00 am - 5:00 pm', 'Bring Phone', 'main', 'toril davao city', 'Jenny', '115645656', 'hr@gmai.com', 1, 1, '2026-04-14', '17:31:00', 'online', '', 'https://www.facebook.com/messenger_media?attachment_id=1657052178637779&message_id=mid.%24gAANwqRoOqUuju72blWdinpZYwAlu&thread_id=968296519084363', 'HAHAH', '2026-04-14 09:15:15', '2026-04-14 09:29:14');
+(27, 16, 'Dave', 'Dela Cerna', '2004-03-14', 1, 'Davao Central college', 'enrollment_certificate_1776158127.pdf', 'valid', '', 1, 1, 1, 'recommendation_letter_1776158132.pdf', 'valid', '', 1, 'medical_certificate_1776158137.pdf', 'valid', '', 1, 'parental_consent_1776158142.pdf', 'valid', '', 1, 'approved', '2026-04-14', '480 hours', 'Monday - Friday', '8:00 am - 5:00 pm', 'Bring Phone', 'main', 'toril davao city', 'Jenny', '115645656', 'hr@gmai.com', 1, 1, '2026-04-14', '17:31:00', 'online', '', 'https://www.facebook.com/messenger_media?attachment_id=1657052178637779&message_id=mid.%24gAANwqRoOqUuju72blWdinpZYwAlu&thread_id=968296519084363', 'HAHAH', '2026-04-14 09:15:15', '2026-04-14 09:29:14'),
+(31, 22, 'jenny', 'Mahinay', '2004-08-22', 1, 'dafadas', 'enrollment_certificate_1776245203.pdf', 'valid', '', 1, 1, 1, 'recommendation_letter_1776245208.pdf', 'valid', '', 1, 'medical_certificate_1776245213.pdf', 'valid', '', 1, 'parental_consent_1776245218.png', 'valid', '', 1, 'approved', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-04-20', '08:27:00', 'online', '', 'https://www.facebook.com/', 'be sadasd', '2026-04-15 09:26:30', '2026-04-15 09:27:32'),
+(37, 23, 'Linda', 'Chronicles', '1969-12-25', 1, 'Davao Central college', 'enrollment_certificate_1776257031.jpg', 'valid', '', 1, 1, 1, 'recommendation_letter_1776257037.png', 'valid', '', 1, 'medical_certificate_1776257043.jpg', 'valid', '', 1, 'parental_consent_1776257051.png', 'valid', '', 1, 'approved', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-04-20', '08:00:00', 'personal', 'MediCare Pharmacy, Main', '', 'Be on tine wear formal attire', '2026-04-15 12:43:43', '2026-04-15 12:46:02');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `internship_routine`
+--
+
+CREATE TABLE `internship_routine` (
+  `id` int(11) NOT NULL,
+  `assigned_to` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `duties` text NOT NULL,
+  `date_from` date NOT NULL,
+  `date_to` date NOT NULL,
+  `file_path` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `user_id` int(11) DEFAULT NULL,
+  `assigned_to_user_id` int(11) DEFAULT NULL,
+  `report_type` varchar(50) NOT NULL DEFAULT 'task',
+  `notes` text DEFAULT NULL,
+  `file_original_name` varchar(255) DEFAULT NULL,
+  `file_stored_name` varchar(255) DEFAULT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'pending',
+  `assigned_by_user_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `internship_routine`
+--
+
+INSERT INTO `internship_routine` (`id`, `assigned_to`, `title`, `duties`, `date_from`, `date_to`, `file_path`, `created_at`, `user_id`, `assigned_to_user_id`, `report_type`, `notes`, `file_original_name`, `file_stored_name`, `status`, `assigned_by_user_id`) VALUES
+(1, 16, 'orientation', 'hdsbfhdsbf', '2026-04-14', '2026-04-15', '13_69de0cd24af8c0.43599948_final_najud.pdf', '2026-04-14 09:45:54', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', 12),
+(2, 16, 'blahblah', 'kjsbckhjabds', '2026-02-07', '2026-02-08', '13_69de0f222c13b3.59056794_final_najud.pdf', '2026-04-14 09:55:46', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', 12),
+(3, 16, 'blabla', 'jaafajbf', '2026-04-14', '2026-04-15', '13_69de10dcd7e537.12673749_final_najud.pdf', '2026-04-14 10:03:08', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', 12),
+(9, 16, 'Internship Report', 'Tig bantay', '2026-04-13', '2026-04-17', '12_69df328fa26026.96979108_Lesson_4_-_Activity.pdf', '2026-04-15 06:39:11', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', 12),
+(10, 16, 'BWHAHAH', 'Tarunga ug wowororrkrok', '2026-04-20', '2026-04-24', '12_69df3d3c215d26.77145562_Successfully_merge.png', '2026-04-15 07:24:44', NULL, NULL, 'task', NULL, NULL, NULL, 'pending', 12),
+(11, 16, 'QWeqqwe', 'qweqeqw', '2026-04-15', '2026-04-21', '12_69df3e8d2c7461.62012855_SP101_SemiFinal.pdf', '2026-04-15 07:30:21', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', 12),
+(16, 22, 'DASD', 'adasdasdsa', '2026-04-15', '2026-04-30', '12_69df66324fb181.02032665_IAS_102_Final_Requirements.pdf', '2026-04-15 10:19:30', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', 12),
+(19, 22, 'adasdadasda', 'asdasdasda', '2026-04-15', '2026-04-28', '12_69df69024a0d33.06929624_DAVE_TDP_Application-Form_-Annex-2__1_.pdf', '2026-04-15 10:31:30', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', NULL),
+(20, 23, 'Inventory Report', 'Make it complete and accurate the Inventory', '2026-04-20', '2026-04-24', '12_69dfa681aa7de5.63856159_667565690_1443807717226264_1150848593725429407_n.png', '2026-04-15 14:53:53', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', NULL),
+(21, 23, 'DASDAS', 'DASDASD', '2026-04-20', '2026-04-24', '12_69dfa93a6d3521.68868968_665822421_899049549781957_8338108312539498404_n.png', '2026-04-15 15:05:30', NULL, NULL, 'task', NULL, NULL, NULL, 'finished', NULL);
 
 -- --------------------------------------------------------
 
@@ -205,7 +196,9 @@ CREATE TABLE `interview_assignments` (
 --
 
 INSERT INTO `interview_assignments` (`id`, `schedule_id`, `user_id`, `internship_record_id`, `assignment_status`, `confirmation_date`, `notes`, `created_at`, `updated_at`) VALUES
-(8, 8, 16, 27, 'completed', NULL, NULL, '2026-04-14 11:56:20', '2026-04-14 11:56:37');
+(9, 9, 16, 27, 'completed', NULL, NULL, '2026-04-15 06:44:59', '2026-04-15 07:06:35'),
+(10, 9, 22, 31, 'completed', NULL, NULL, '2026-04-15 09:27:58', '2026-04-15 09:28:08'),
+(12, 11, 23, 37, 'completed', NULL, NULL, '2026-04-15 12:47:29', '2026-04-15 12:48:26');
 
 -- --------------------------------------------------------
 
@@ -253,7 +246,9 @@ CREATE TABLE `interview_evaluations` (
 --
 
 INSERT INTO `interview_evaluations` (`id`, `interview_assignment_id`, `user_id`, `evaluated_by`, `education_rating`, `education_comments`, `training_rating`, `training_comments`, `work_experience_rating`, `work_experience_comments`, `company_knowledge_rating`, `company_knowledge_comments`, `technical_skills_rating`, `technical_skills_comments`, `multitasking_skills_rating`, `multitasking_skills_comments`, `communication_skills_rating`, `communication_skills_comments`, `teamwork_rating`, `teamwork_comments`, `stress_tolerance_rating`, `stress_tolerance_comments`, `culture_fit_rating`, `culture_fit_comments`, `average_rating`, `overall_evaluation`, `final_decision`, `work_schedule_sent`, `work_start_date`, `work_schedule_details`, `created_at`, `updated_at`) VALUES
-(7, 8, 16, 12, 5, '', 5, '', 5, '', 5, '', 5, '', 5, '', 5, NULL, 5, '', 5, '', 5, '', 5.00, '0', 'accepted', 1, '2026-04-20', 'Department: Pharmacy Operations\r\nShift: 11 PM - 7 AM\r\n\r\nWeekly Schedule:\r\n- Monday: 11 PM - 7 AM\r\n- Tuesday: 11 PM - 7 AM\r\n- Wednesday: 11 PM - 7 AM\r\n- Thursday: 11 PM - 7 AM\r\n- Friday: 11 PM - 7 AM\r\n- Saturday: 11 PM - 7 AM\r\n- Sunday: 11 PM - 7 AM\r\n\r\nSupervisor: dr ERWINM\r\nLocation: Downtown Branch\r\n\r\nNotes: bE ON TIME', '2026-04-14 11:56:51', '2026-04-14 11:57:19');
+(8, 9, 16, 12, 5, '', 5, '', 5, '', 5, '', 5, '', 5, '', 5, NULL, 5, '', 5, '', 5, '', 5.00, '0', 'accepted', 1, '2026-04-20', 'Department: Pharmacy Operations\r\nShift: 7 AM - 3 PM\r\n\r\nWeekly Schedule:\r\n- Monday: 7 AM - 3 PM\r\n- Tuesday: 7 AM - 3 PM\r\n- Wednesday: 7 AM - 3 PM\r\n- Thursday: 7 AM - 3 PM\r\n- Friday: 7 AM - 3 PM\r\n- Saturday: OFF\r\n- Sunday: OFF\r\n\r\nSupervisor: Dr jasmine\r\nLocation: Retail Pharmacy\r\n\r\nNotes: Be on time', '2026-04-15 07:06:50', '2026-04-15 07:07:14'),
+(12, 10, 22, 12, 5, '', 5, '', 5, '', 5, '', 5, '', 5, '', 5, NULL, 5, '', 5, '', 5, '', 5.00, '0', 'accepted', 1, '2026-04-20', 'Department: Pharmacy Operations\r\nShift: 11 PM - 7 AM\r\n\r\nWeekly Schedule:\r\n- Monday: 11 PM - 7 AM\r\n- Tuesday: 11 PM - 7 AM\r\n- Wednesday: 11 PM - 7 AM\r\n- Thursday: 11 PM - 7 AM\r\n- Friday: 11 PM - 7 AM\r\n- Saturday: 11 PM - 7 AM\r\n- Sunday: 11 PM - 7 AM\r\n\r\nSupervisor: Dr jasmine\r\nLocation: Main Pharmacy Branch\r\n\r\nNotes: adasdasda', '2026-04-15 10:36:06', '2026-04-15 10:36:57'),
+(18, 12, 23, 12, 5, 'Excellent', 5, 'Excellent', 5, 'Excellent', 5, 'Excellent', 5, 'Excellent', 5, 'Excellent', 5, NULL, 5, 'Excellent', 5, 'Excellent', 5, 'Excellent', 5.00, '0', 'accepted', 1, '2026-04-20', 'Department: Customer Service\r\nShift: 7 AM - 3 PM\r\n\r\nWeekly Schedule:\r\n- Monday: 7 AM - 3 PM\r\n- Tuesday: 7 AM - 3 PM\r\n- Wednesday: 7 AM - 3 PM\r\n- Thursday: 7 AM - 3 PM\r\n- Friday: 7 AM - 3 PM\r\n- Saturday: OFF\r\n- Sunday: OFF\r\n\r\nSupervisor: Harvey Doblon\r\nLocation: Main Pharmacy Branch\r\n\r\nNotes: Update schedule be always present', '2026-04-15 14:30:28', '2026-04-15 14:39:02');
 
 -- --------------------------------------------------------
 
@@ -307,7 +302,8 @@ CREATE TABLE `interview_schedule` (
 --
 
 INSERT INTO `interview_schedule` (`id`, `batch_number`, `interview_date`, `interview_time`, `interview_type`, `location`, `online_meeting_link`, `online_meeting_id`, `online_meeting_password`, `max_slots`, `filled_slots`, `status`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
-(8, 1, '2026-04-15', '09:56:00', 'online', '', 'https://www.facebook.com/messages/t/764186356463229', '31231232', '12312312', 15, 1, 'scheduled', 'hehe', 12, '2026-04-14 11:56:14', '2026-04-14 11:56:20');
+(9, 1, '2026-04-16', '14:44:00', 'personal', 'Bago Gallera Talomo Davao City', '', '', '', 15, 2, 'scheduled', 'DAADA', 12, '2026-04-15 06:44:55', '2026-04-15 09:27:58'),
+(11, 2, '2026-04-20', '08:00:00', 'personal', 'MediCare, Main Office', '', '', '', 4, 1, 'scheduled', 'Davao Central College Students', 12, '2026-04-15 12:47:15', '2026-04-15 12:47:29');
 
 -- --------------------------------------------------------
 
@@ -357,7 +353,8 @@ CREATE TABLE `moa_agreements` (
 --
 
 INSERT INTO `moa_agreements` (`id`, `work_schedule_id`, `user_id`, `moa_content`, `moa_version`, `moa_document_path`, `moa_document_name`, `signature_file_path`, `signature_file_name`, `moa_uploaded_at`, `moa_uploaded_by`, `lawyer_name`, `lawyer_license_number`, `approval_date`, `approval_notes`, `agreement_date`, `start_date`, `department`, `supervisor_name`, `location`, `intern_signature`, `intern_full_name`, `intern_email`, `accepted_at`, `ip_address`, `user_agent`, `agreed_terms`, `agreed_confidentiality`, `agreed_schedule`, `status`, `termination_date`, `termination_reason`, `created_at`, `updated_at`) VALUES
-(6, 6, 16, 'MEMORANDUM OF AGREEMENT\n\nThis agreement is entered into on April 14, 2026\nBetween: MediCare Pharmacy and  \n\nDepartment: Pharmacy Operations\nSupervisor: dr ERWINM\nLocation: Downtown Branch\nStart Date: April 20, 2026\n\nWork Schedule:\nDepartment: Pharmacy Operations\r\nShift: 11 PM - 7 AM\r\n\r\nWeekly Schedule:\r\n- Monday: 11 PM - 7 AM\r\n- Tuesday: 11 PM - 7 AM\r\n- Wednesday: 11 PM - 7 AM\r\n- Thursday: 11 PM - 7 AM\r\n- Friday: 11 PM - 7 AM\r\n- Saturday: 11 PM - 7 AM\r\n- Sunday: 11 PM - 7 AM\r\n\r\nSupervisor: dr ERWINM\r\nLocation: Downtown Branch\r\n\r\nNotes: bE ON TIME', '1.0', '../../uploads/internship_documents/16/moa_6_1776167862.pdf', 'moa.pdf', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-14', '2026-04-20', 'Pharmacy Operations', 'dr ERWINM', 'Downtown Branch', 'Dave Vismanos Dela Cerna', ' ', 'davedelacerna09@gmail.com', '2026-04-14 11:57:42', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 1, 1, 1, 'active', NULL, NULL, '2026-04-14 11:57:42', '2026-04-14 11:57:42');
+(9, 11, 22, 'MEMORANDUM OF AGREEMENT\n\nThis agreement is entered into on April 15, 2026\nBetween: MediCare Pharmacy and jenny Mahinay\n\nDepartment: Pharmacy Operations\nSupervisor: Dr jasmine\nLocation: Main Pharmacy Branch\nStart Date: April 20, 2026\n\nWork Schedule:\nDepartment: Pharmacy Operations\r\nShift: 11 PM - 7 AM\r\n\r\nWeekly Schedule:\r\n- Monday: 11 PM - 7 AM\r\n- Tuesday: 11 PM - 7 AM\r\n- Wednesday: 11 PM - 7 AM\r\n- Thursday: 11 PM - 7 AM\r\n- Friday: 11 PM - 7 AM\r\n- Saturday: 11 PM - 7 AM\r\n- Sunday: 11 PM - 7 AM\r\n\r\nSupervisor: Dr jasmine\r\nLocation: Main Pharmacy Branch\r\n\r\nNotes: adasdasda', '1.0', '../../uploads/internship_documents/22/moa_11_1776249448.pdf', 'moa.pdf', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-15', '2026-04-20', 'Pharmacy Operations', 'Dr jasmine', 'Main Pharmacy Branch', 'jenny mahinay', 'jenny Mahinay', 'jenny@gmail.com', '2026-04-15 10:37:28', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 1, 1, 1, 'active', NULL, NULL, '2026-04-15 10:37:28', '2026-04-15 10:37:28'),
+(10, 16, 23, 'MEMORANDUM OF AGREEMENT\n\nThis agreement is entered into on April 15, 2026\nBetween: MediCare Pharmacy and  \n\nDepartment: Customer Service\nSupervisor: Harvey Doblon\nLocation: Main Pharmacy Branch\nStart Date: April 20, 2026\n\nWork Schedule:\nDepartment: Customer Service\r\nShift: 7 AM - 3 PM\r\n\r\nWeekly Schedule:\r\n- Monday: 7 AM - 3 PM\r\n- Tuesday: 7 AM - 3 PM\r\n- Wednesday: 7 AM - 3 PM\r\n- Thursday: 7 AM - 3 PM\r\n- Friday: 7 AM - 3 PM\r\n- Saturday: OFF\r\n- Sunday: OFF\r\n\r\nSupervisor: Harvey Doblon\r\nLocation: Main Pharmacy Branch\r\n\r\nNotes: Update schedule be always present', '1.0', '../../uploads/moa_documents/moa_23_1776263807.pdf', 'minutes for orientation.docx.pdf', NULL, NULL, NULL, 12, NULL, NULL, NULL, NULL, '2026-04-15', '2026-04-20', 'Customer Service', 'Harvey Doblon', 'Main Pharmacy Branch', 'Linda watapampa', ' ', 'Linda@gmail.com', '2026-04-15 14:44:06', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 1, 1, 1, 'active', NULL, NULL, '2026-04-15 14:44:06', '2026-04-15 14:44:06');
 
 -- --------------------------------------------------------
 
@@ -395,7 +392,58 @@ INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `message`, `relat
 (13, 16, 'interview_scheduled', 'You have been scheduled for an interview on April 15, 2026 at 09:35 PM. This is an online interview. Check your dashboard for meeting details.', '7', NULL, 1, '2026-04-14 11:36:15'),
 (14, 16, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 15, 2026. Please review and sign the MOA to confirm.', '5', NULL, 1, '2026-04-14 11:37:47'),
 (15, 16, 'interview_scheduled', 'You have been scheduled for an interview on April 15, 2026 at 09:56 AM. This is an online interview. Check your dashboard for meeting details.', '8', NULL, 1, '2026-04-14 11:56:20'),
-(16, 16, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 20, 2026. Please review and sign the MOA to confirm.', '6', NULL, 1, '2026-04-14 11:57:19');
+(16, 16, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 20, 2026. Please review and sign the MOA to confirm.', '6', NULL, 1, '2026-04-14 11:57:19'),
+(17, 16, 'interview_scheduled', 'You have been scheduled for an interview on April 16, 2026 at 02:44 PM. Location: Bago Gallera Talomo Davao City', '9', NULL, 1, '2026-04-15 06:44:59'),
+(18, 16, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 20, 2026. Please review and sign the MOA to confirm.', '7', NULL, 1, '2026-04-15 07:07:14'),
+(19, 16, 'task_assigned', 'New task assigned', 'HR assigned you a task: QWeqqwe (2026-04-15 to 2026-04-21).', NULL, 1, '2026-04-15 07:30:21'),
+(20, 16, 'task_assigned', 'New task assigned', 'HR assigned you a task: BWHAAHAH (2026-04-30 to 2026-05-29).', NULL, 1, '2026-04-15 07:31:17'),
+(21, 16, 'task_status_updated', 'Task Status Updated', 'Your task status has been updated to: Late', NULL, 1, '2026-04-15 07:31:33'),
+(22, 16, 'task_status_updated', 'Task Status Updated', 'Your task status has been updated to: Finished', NULL, 1, '2026-04-15 07:31:37'),
+(23, 22, 'interview_scheduled', 'Interview Scheduled!', 'Your interview has been scheduled for April 17, 2026 at 8:12 AM. Type: Online Interview. Click to view details.', 28, 1, '2026-04-15 09:12:34'),
+(25, 22, 'interview_scheduled', 'Interview Scheduled!', 'Your interview has been scheduled for April 20, 2026 at 8:20 AM. Type: Online Interview. Click to view details.', 29, 1, '2026-04-15 09:21:17'),
+(26, 22, 'interview_scheduled', 'Interview Scheduled!', 'Your interview has been scheduled for April 20, 2026 at 8:20 AM. Type: Online Interview. Click to view details.', 29, 1, '2026-04-15 09:22:43'),
+(27, 22, 'interview_scheduled', 'Interview Scheduled!', 'Your interview has been scheduled for April 20, 2026 at 8:20 AM. Type: Online Interview. Click to view details.', 29, 1, '2026-04-15 09:22:45'),
+(28, 22, 'interview_scheduled', 'Interview Scheduled!', 'Your interview has been scheduled for April 16, 2026 at 5:27 PM. Type: Online Interview. Click to view details.', 30, 1, '2026-04-15 09:24:35'),
+(29, 22, 'interview_scheduled', 'Interview Scheduled!', 'Your interview has been scheduled for April 20, 2026 at 8:27 AM. Type: Online Interview. Click to view details.', 31, 1, '2026-04-15 09:27:32'),
+(30, 22, 'interview_scheduled', 'You have been scheduled for an interview on April 16, 2026 at 02:44 PM. Location: Bago Gallera Talomo Davao City', '9', NULL, 1, '2026-04-15 09:27:58'),
+(31, 22, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 20, 2026. Please review and sign the MOA to confirm.', '8', NULL, 1, '2026-04-15 09:28:45'),
+(32, 22, 'task_assigned', 'New task assigned', 'HR assigned you a task: Weekly Report (2026-04-16 to 2026-04-30).', NULL, 1, '2026-04-15 09:36:06'),
+(33, 22, 'task_status_updated', 'Task Status Updated', 'Your task status has been updated to: Finished', NULL, 1, '2026-04-15 09:36:58'),
+(34, 22, 'task_status_updated', 'Task Status Updated', 'Your task status has been updated to: Finished', NULL, 1, '2026-04-15 09:37:31'),
+(35, 22, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 24, 2026. Please review and sign the MOA to confirm.', '9', NULL, 1, '2026-04-15 09:59:00'),
+(36, 22, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 30, 2026. Please review and sign the MOA to confirm.', '10', NULL, 1, '2026-04-15 10:06:40'),
+(37, 12, 'schedule_rejected', 'Work Schedule Rejected', 'jenny Mahinay has rejected their work schedule for Pharmacy Operations. Reason: wala lng. Please edit and resend the schedule.', 10, 1, '2026-04-15 10:07:04'),
+(38, 22, 'work_schedule_updated', 'Work Schedule Updated', 'Your work schedule has been updated by HR. Start Date: April 30, 2026. Please review and sign the MOA to confirm.', 10, 1, '2026-04-15 10:08:12'),
+(39, 12, 'schedule_accepted', 'Work Schedule Accepted', 'jenny Mahinay has accepted their work schedule and signed the MOA for Pharmacy Operations starting April 30, 2026.', 10, 1, '2026-04-15 10:08:39'),
+(40, 22, 'task_assigned', 'New task assigned', 'HR assigned you a task: Tarung (2026-04-21 to 2026-04-29).', NULL, 1, '2026-04-15 10:13:34'),
+(41, 22, 'task_assigned', 'New task assigned', 'HR assigned you a task: aweaerdf (2026-04-16 to 2026-04-26).', NULL, 1, '2026-04-15 10:16:52'),
+(42, 22, 'task_assigned', 'New task assigned', 'HR assigned you a task: DASD (2026-04-15 to 2026-04-30).', NULL, 1, '2026-04-15 10:19:30'),
+(43, 22, 'task_assigned', 'New task assigned', 'HR assigned you a task: dadasd (2026-04-15 to 2026-04-29).', NULL, 1, '2026-04-15 10:20:24'),
+(44, 22, 'task_assigned', 'New task assigned', 'HR assigned you a task: dasdasd (2026-04-21 to 2026-04-28).', NULL, 1, '2026-04-15 10:25:52'),
+(45, 22, 'task_assigned', 'New task assigned', 'HR assigned you a task: adasdadasda (2026-04-15 to 2026-04-28).', NULL, 1, '2026-04-15 10:31:30'),
+(46, 12, 'task_completed', 'Test Task Completed', 'This is a test notification', NULL, 1, '2026-04-15 10:34:26'),
+(47, 22, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 20, 2026. Please review and sign the MOA to confirm.', '11', NULL, 1, '2026-04-15 10:36:24'),
+(48, 12, 'schedule_rejected', 'Work Schedule Rejected', 'jenny Mahinay has rejected their work schedule for Pharmacy Operations. Reason: kapoy mana. Please edit and resend the schedule.', 11, 1, '2026-04-15 10:36:34'),
+(49, 22, 'work_schedule_updated', 'Work Schedule Updated', 'Your work schedule has been updated by HR. Start Date: April 20, 2026. Please review and sign the MOA to confirm.', 11, 1, '2026-04-15 10:36:57'),
+(50, 12, 'schedule_accepted', 'Work Schedule Accepted', 'jenny Mahinay has accepted their work schedule and signed the MOA for Pharmacy Operations starting April 20, 2026.', 11, 1, '2026-04-15 10:37:28'),
+(51, 12, 'task_completed', 'Task Completed', 'jenny Mahinay has completed the task: adasdadasda', NULL, 1, '2026-04-15 10:39:36'),
+(52, 23, 'interview_scheduled', 'Interview Scheduled!', 'Your interview has been scheduled for April 16, 2026 at 10:00 AM. Type: Personal Interview. Click to view details.', 33, 1, '2026-04-15 12:27:55'),
+(53, 23, 'interview_scheduled', 'You have been scheduled for an interview on April 16, 2026 at 10:00 AM. Location: HR Office', '10', NULL, 1, '2026-04-15 12:31:23'),
+(54, 12, 'new_application', 'New Internship Application', 'Linda Chronicles has submitted a new internship application. Click to review.', 37, 1, '2026-04-15 12:44:14'),
+(55, 23, 'interview_scheduled', 'Interview Scheduled!', 'Your interview has been scheduled for April 20, 2026 at 8:00 AM. Type: Personal Interview. Click to view details.', 37, 1, '2026-04-15 12:46:02'),
+(56, 23, 'interview_scheduled', 'You have been scheduled for an interview on April 20, 2026 at 08:00 AM. Location: MediCare, Main Office', '11', NULL, 1, '2026-04-15 12:47:29'),
+(57, 23, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 27, 2026. Please review and sign the MOA to confirm.', '12', NULL, 1, '2026-04-15 12:53:25'),
+(58, 23, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 20, 2026. Please review and sign the MOA to confirm.', '13', NULL, 1, '2026-04-15 14:19:57'),
+(59, 23, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 24, 2026. Please review and sign the MOA to confirm.', '14', NULL, 1, '2026-04-15 14:23:50'),
+(60, 23, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 24, 2026. Please review and sign the MOA to confirm.', '15', NULL, 1, '2026-04-15 14:25:45'),
+(61, 23, 'work_schedule_assigned', 'Your work schedule has been assigned! Start Date: April 20, 2026. Please review and sign the MOA to confirm.', '16', NULL, 1, '2026-04-15 14:36:47'),
+(62, 12, 'schedule_rejected', 'Work Schedule Rejected', '  has rejected their work schedule for Customer Service. Reason: I have classes that schedule. Please edit and resend the schedule.', 16, 1, '2026-04-15 14:37:33'),
+(63, 23, 'work_schedule_updated', 'Work Schedule Updated', 'Your work schedule has been updated by HR. Start Date: April 20, 2026. Please review and sign the MOA to confirm.', 16, 1, '2026-04-15 14:39:02'),
+(64, 12, 'schedule_accepted', 'Work Schedule Accepted', '  has accepted their work schedule and signed the MOA for Customer Service starting April 20, 2026.', 16, 1, '2026-04-15 14:44:06'),
+(65, 23, 'task_assigned', 'New task assigned', 'HR assigned you a task: Inventory Report (2026-04-20 to 2026-04-24).', NULL, 1, '2026-04-15 14:53:53'),
+(66, 12, 'task_completed', 'Task Completed', '  has completed the task: Inventory Report', NULL, 1, '2026-04-15 14:54:13'),
+(67, 23, 'task_assigned', 'New task assigned', 'HR assigned you a task: DASDAS (2026-04-20 to 2026-04-24).', NULL, 1, '2026-04-15 15:05:30'),
+(68, 12, 'task_completed', 'Task Completed', '  has completed the task: DASDAS', NULL, 1, '2026-04-15 15:05:43');
 
 -- --------------------------------------------------------
 
@@ -430,8 +478,6 @@ INSERT INTO `pharmacy_business_document` (`id`, `title`, `description`, `documen
 -- --------------------------------------------------------
 
 --
-=======
->>>>>>> recovery-restore
 -- Table structure for table `roles`
 --
 
@@ -463,10 +509,7 @@ CREATE TABLE `users` (
   `first_name` varchar(50) NOT NULL,
   `middle_name` varchar(50) DEFAULT NULL,
   `last_name` varchar(50) NOT NULL,
-<<<<<<< HEAD
   `birth_date` date DEFAULT NULL,
-=======
->>>>>>> recovery-restore
   `phone_number` varchar(20) NOT NULL,
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
@@ -480,10 +523,11 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-<<<<<<< HEAD
 INSERT INTO `users` (`id`, `first_name`, `middle_name`, `last_name`, `birth_date`, `phone_number`, `email`, `password`, `role_id`, `is_active`, `created_at`, `updated_at`) VALUES
 (12, 'Joanna', 'Rolida', 'wew', NULL, '09251242131', 'joanna@gmail.com', '$2y$10$DGBkL4HIvepYzS9b5ARMS.7Cw4LfvDDO.zFl2GVxJ3s.vGBi9/gaG', 2, 1, '2026-04-14 03:29:03', '2026-04-14 03:29:17'),
-(16, 'Dave', 'Vismanos', 'Dela Cerna', '2004-03-14', '09120738886', 'davedelacerna09@gmail.com', '$2y$10$hvmw4/09MXh8Rj.BBZ6XM.QjzsZqm7/nZo5e1E3yVB0HIrzNyw8H2', 1, 1, '2026-04-14 06:59:02', '2026-04-14 06:59:16');
+(16, 'Dave', 'Vismanos', 'Dela Cerna', '2004-03-14', '09120738886', 'davedelacerna09@gmail.com', '$2y$10$hvmw4/09MXh8Rj.BBZ6XM.QjzsZqm7/nZo5e1E3yVB0HIrzNyw8H2', 1, 1, '2026-04-14 06:59:02', '2026-04-14 06:59:16'),
+(22, 'jenny', 'nioda', 'Mahinay', '2004-08-22', '09927886336', 'jenny@gmail.com', '$2y$10$qwYTOd4stgezOAe6BkKWIOeMJyp7Obt/uLMqba5mSuEI.ASfw1./6', 1, 1, '2026-04-15 09:06:49', '2026-04-15 09:06:52'),
+(23, 'Linda', 'watapampa', 'Chronicles', '1969-12-25', '09263209117', 'Linda@gmail.com', '$2y$10$ef7zsHCcDD9snmzJLTs9L.2jjh5rPVkTgR6d.qtTbnNmUqawM1kAe', 1, 1, '2026-04-15 12:20:27', '2026-04-15 12:20:30');
 
 -- --------------------------------------------------------
 
@@ -505,6 +549,8 @@ CREATE TABLE `work_schedules` (
   `location` varchar(100) NOT NULL,
   `special_instructions` text DEFAULT NULL,
   `formatted_schedule` text NOT NULL,
+  `moa_document_path` varchar(500) DEFAULT NULL,
+  `moa_document_name` varchar(255) DEFAULT NULL,
   `status` enum('pending','sent','acknowledged','active','completed','cancelled') DEFAULT 'pending',
   `sent_at` timestamp NULL DEFAULT NULL,
   `acknowledged_at` timestamp NULL DEFAULT NULL,
@@ -516,38 +562,13 @@ CREATE TABLE `work_schedules` (
 -- Dumping data for table `work_schedules`
 --
 
-INSERT INTO `work_schedules` (`id`, `evaluation_id`, `user_id`, `created_by`, `start_date`, `department`, `shift_type`, `shift_time`, `working_days`, `supervisor_name`, `location`, `special_instructions`, `formatted_schedule`, `status`, `sent_at`, `acknowledged_at`, `created_at`, `updated_at`) VALUES
-(6, 7, 16, 12, '2026-04-20', 'Pharmacy Operations', 'night', '11 PM - 7 AM', 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday', 'dr ERWINM', 'Downtown Branch', 'bE ON TIME', 'Department: Pharmacy Operations\r\nShift: 11 PM - 7 AM\r\n\r\nWeekly Schedule:\r\n- Monday: 11 PM - 7 AM\r\n- Tuesday: 11 PM - 7 AM\r\n- Wednesday: 11 PM - 7 AM\r\n- Thursday: 11 PM - 7 AM\r\n- Friday: 11 PM - 7 AM\r\n- Saturday: 11 PM - 7 AM\r\n- Sunday: 11 PM - 7 AM\r\n\r\nSupervisor: dr ERWINM\r\nLocation: Downtown Branch\r\n\r\nNotes: bE ON TIME', 'acknowledged', '2026-04-14 11:57:19', '2026-04-14 11:57:42', '2026-04-14 11:57:19', '2026-04-14 11:57:42');
-=======
-INSERT INTO `users` (`id`, `first_name`, `middle_name`, `last_name`, `phone_number`, `email`, `password`, `role_id`, `is_active`, `created_at`, `updated_at`) VALUES
-(11, 'Dave', 'Dela', 'cerna', '09120738886', 'davedelacerna09@gmail.com', '$2y$10$0BqzzJfgTMihAmGS/W/sAu.oZEG218Z2GZ7DVNEdAyscnSx/qoahu', 1, 1, '2026-04-14 02:52:52', '2026-04-14 02:53:34');
->>>>>>> recovery-restore
+INSERT INTO `work_schedules` (`id`, `evaluation_id`, `user_id`, `created_by`, `start_date`, `department`, `shift_type`, `shift_time`, `working_days`, `supervisor_name`, `location`, `special_instructions`, `formatted_schedule`, `moa_document_path`, `moa_document_name`, `status`, `sent_at`, `acknowledged_at`, `created_at`, `updated_at`) VALUES
+(11, 12, 22, 12, '2026-04-20', 'Pharmacy Operations', 'night', '11 PM - 7 AM', 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday', 'Dr jasmine', 'Main Pharmacy Branch', 'adasdasda', 'Department: Pharmacy Operations\r\nShift: 11 PM - 7 AM\r\n\r\nWeekly Schedule:\r\n- Monday: 11 PM - 7 AM\r\n- Tuesday: 11 PM - 7 AM\r\n- Wednesday: 11 PM - 7 AM\r\n- Thursday: 11 PM - 7 AM\r\n- Friday: 11 PM - 7 AM\r\n- Saturday: 11 PM - 7 AM\r\n- Sunday: 11 PM - 7 AM\r\n\r\nSupervisor: Dr jasmine\r\nLocation: Main Pharmacy Branch\r\n\r\nNotes: adasdasda', NULL, NULL, 'acknowledged', '2026-04-15 10:36:57', '2026-04-15 10:37:28', '2026-04-15 10:36:24', '2026-04-15 10:37:28'),
+(16, 18, 23, 12, '2026-04-20', 'Customer Service', 'morning', '7 AM - 3 PM', 'Monday,Tuesday,Wednesday,Thursday,Friday', 'Harvey Doblon', 'Main Pharmacy Branch', 'Update schedule be always present', 'Department: Customer Service\r\nShift: 7 AM - 3 PM\r\n\r\nWeekly Schedule:\r\n- Monday: 7 AM - 3 PM\r\n- Tuesday: 7 AM - 3 PM\r\n- Wednesday: 7 AM - 3 PM\r\n- Thursday: 7 AM - 3 PM\r\n- Friday: 7 AM - 3 PM\r\n- Saturday: OFF\r\n- Sunday: OFF\r\n\r\nSupervisor: Harvey Doblon\r\nLocation: Main Pharmacy Branch\r\n\r\nNotes: Update schedule be always present', '../../uploads/moa_documents/moa_23_1776263807.pdf', 'minutes for orientation.docx.pdf', 'acknowledged', '2026-04-15 14:39:02', '2026-04-15 14:44:06', '2026-04-15 14:36:47', '2026-04-15 14:44:06');
 
 --
 -- Indexes for dumped tables
 --
-
---
-<<<<<<< HEAD
--- Indexes for table `attendance`
---
-ALTER TABLE `attendance`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_attendance` (`user_id`,`attendance_date`),
-  ADD KEY `work_schedule_id` (`work_schedule_id`),
-  ADD KEY `approved_by` (`approved_by`),
-  ADD KEY `idx_user_date` (`user_id`,`attendance_date`),
-  ADD KEY `idx_status` (`status`),
-  ADD KEY `idx_attendance_date` (`attendance_date`);
-
---
--- Indexes for table `attendance_summary`
---
-ALTER TABLE `attendance_summary`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `work_schedule_id` (`work_schedule_id`),
-  ADD KEY `idx_user_period` (`user_id`,`period_start_date`,`period_end_date`),
-  ADD KEY `idx_period` (`summary_period`);
 
 --
 -- Indexes for table `employee_profile`
@@ -575,6 +596,12 @@ ALTER TABLE `internship_applications`
 ALTER TABLE `internship_records`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `internship_routine`
+--
+ALTER TABLE `internship_routine`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `interview_assignments`
@@ -647,8 +674,6 @@ ALTER TABLE `pharmacy_business_document`
   ADD KEY `is_active` (`is_active`);
 
 --
-=======
->>>>>>> recovery-restore
 -- Indexes for table `roles`
 --
 ALTER TABLE `roles`
@@ -668,7 +693,6 @@ ALTER TABLE `users`
   ADD KEY `idx_created_at` (`created_at`);
 
 --
-<<<<<<< HEAD
 -- Indexes for table `work_schedules`
 --
 ALTER TABLE `work_schedules`
@@ -680,77 +704,68 @@ ALTER TABLE `work_schedules`
   ADD KEY `idx_start_date` (`start_date`);
 
 --
-=======
->>>>>>> recovery-restore
 -- AUTO_INCREMENT for dumped tables
 --
-
---
-<<<<<<< HEAD
--- AUTO_INCREMENT for table `attendance`
---
-ALTER TABLE `attendance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `attendance_summary`
---
-ALTER TABLE `attendance_summary`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `employee_profile`
 --
 ALTER TABLE `employee_profile`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `internship_applications`
 --
 ALTER TABLE `internship_applications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `internship_records`
 --
 ALTER TABLE `internship_records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+
+--
+-- AUTO_INCREMENT for table `internship_routine`
+--
+ALTER TABLE `internship_routine`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `interview_assignments`
 --
 ALTER TABLE `interview_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `interview_evaluations`
 --
 ALTER TABLE `interview_evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `interview_records`
 --
 ALTER TABLE `interview_records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `interview_schedule`
 --
 ALTER TABLE `interview_schedule`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `moa_agreements`
 --
 ALTER TABLE `moa_agreements`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `pharmacy_business_document`
@@ -759,8 +774,6 @@ ALTER TABLE `pharmacy_business_document`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
-=======
->>>>>>> recovery-restore
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
@@ -770,37 +783,17 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-<<<<<<< HEAD
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `work_schedules`
 --
 ALTER TABLE `work_schedules`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-=======
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
->>>>>>> recovery-restore
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- Constraints for dumped tables
 --
-
---
-<<<<<<< HEAD
--- Constraints for table `attendance`
---
-ALTER TABLE `attendance`
-  ADD CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `attendance_ibfk_2` FOREIGN KEY (`work_schedule_id`) REFERENCES `work_schedules` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `attendance_ibfk_3` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
-
---
--- Constraints for table `attendance_summary`
---
-ALTER TABLE `attendance_summary`
-  ADD CONSTRAINT `attendance_summary_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `attendance_summary_ibfk_2` FOREIGN KEY (`work_schedule_id`) REFERENCES `work_schedules` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `employee_profile`
@@ -873,13 +866,10 @@ ALTER TABLE `pharmacy_business_document`
   ADD CONSTRAINT `pharmacy_business_document_ibfk_1` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
-=======
->>>>>>> recovery-restore
 -- Constraints for table `users`
 --
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE;
-<<<<<<< HEAD
 
 --
 -- Constraints for table `work_schedules`
@@ -888,8 +878,6 @@ ALTER TABLE `work_schedules`
   ADD CONSTRAINT `work_schedules_ibfk_1` FOREIGN KEY (`evaluation_id`) REFERENCES `interview_evaluations` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `work_schedules_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `work_schedules_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-=======
->>>>>>> recovery-restore
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

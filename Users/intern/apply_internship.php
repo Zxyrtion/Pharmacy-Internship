@@ -16,9 +16,13 @@ if ($_SESSION['role_name'] !== 'Intern') {
 require_once '../../core/Database.php';
 require_once '../../models/internship.php';
 
+// Keep the mysqli connection from config.php for notifications
+$mysqli_conn = $conn;
+
+// Create PDO connection for internship model
 $db = new Database();
-$conn = $db->getConnection();
-$internship = new Internship($conn);
+$pdo_conn = $db->getConnection();
+$internship = new Internship($pdo_conn);
 
 // Get or create internship record for this user
 $internship_record = $internship->getByUserId($_SESSION['user_id']);
@@ -79,6 +83,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['submit_application'])) {
         if ($internship_record['is_eligible']) {
             $internship->updateField($_SESSION['user_id'], 'application_status', 'submitted');
+            
+            // Create notification for all HR personnel using mysqli connection
+            try {
+                // Get all HR personnel user IDs (role_id = 2 for HR Personnel)
+                $hr_sql = "SELECT u.id, u.first_name, u.last_name 
+                          FROM users u 
+                          WHERE u.role_id = 2 AND u.is_active = 1";
+                $hr_stmt = $mysqli_conn->prepare($hr_sql);
+                
+                if ($hr_stmt === false) {
+                    error_log("HR query prepare failed: " . $mysqli_conn->error);
+                } else {
+                    $hr_stmt->execute();
+                    $hr_result = $hr_stmt->get_result();
+                    
+                    // Send notification to each HR personnel
+                    if ($hr_result->num_rows > 0) {
+                        $applicant_name = $_SESSION['first_name'] . ' ' . $_SESSION['last_name'];
+                        $notification_type = 'new_application';
+                        $notification_title = 'New Internship Application';
+                        $notification_message = $applicant_name . ' has submitted a new internship application. Click to review.';
+                        
+                        while ($hr_user = $hr_result->fetch_assoc()) {
+                            $notif_sql = "INSERT INTO notifications (user_id, type, title, message, related_id) 
+                                         VALUES (?, ?, ?, ?, ?)";
+                            $notif_stmt = $mysqli_conn->prepare($notif_sql);
+                            
+                            if ($notif_stmt === false) {
+                                error_log("Notification insert prepare failed: " . $mysqli_conn->error);
+                                continue;
+                            }
+                            
+                            $notif_stmt->bind_param(
+                                "isssi",
+                                $hr_user['id'],
+                                $notification_type,
+                                $notification_title,
+                                $notification_message,
+                                $internship_record['id']
+                            );
+                            
+                            if ($notif_stmt->execute()) {
+                                error_log("Notification sent to HR user ID: " . $hr_user['id']);
+                            } else {
+                                error_log("Failed to send notification: " . $notif_stmt->error);
+                            }
+                        }
+                    } else {
+                        error_log("No HR personnel found in database");
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Error creating HR notification: " . $e->getMessage());
+            }
+            
             $_SESSION['success'] = 'Application submitted successfully!';
         } else {
             $_SESSION['error'] = 'Please complete all requirements before submitting.';
@@ -139,12 +198,26 @@ $internship_record = $internship->getByUserId($_SESSION['user_id']);
                 <small>Submit your internship application</small>
             </div>
             <div class="card-body">
-                <?php if (isset($_SESSION['success'])): ?>
+                <?php 
+                $show_success_modal = false;
+                $success_message = '';
+                if (isset($_SESSION['success'])): 
+                    $success_message = $_SESSION['success'];
+                    // Check if it's an application submission success
+                    if (strpos($success_message, 'Application submitted') !== false) {
+                        $show_success_modal = true;
+                    }
+                    unset($_SESSION['success']);
+                endif; 
+                
+                // Show regular alert for non-application submissions
+                if (!empty($success_message) && !$show_success_modal): 
+                ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                        <?php echo $success_message; ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
                         
                         <?php if (isset($_SESSION['error'])): ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -370,7 +443,54 @@ $internship_record = $internship->getByUserId($_SESSION['user_id']);
                 </div>
             </div>
 
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="successModalLabel">
+                        <i class="fas fa-check-circle me-2"></i>Application Submitted Successfully!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="mb-3">Your application has been submitted to HR!</h5>
+                    <p class="text-muted mb-0">
+                        Your internship application has been successfully submitted and is now under review by the HR department. 
+                        You will receive a notification once your application has been reviewed.
+                    </p>
+                    <div class="alert alert-info mt-3 text-start">
+                        <strong>Next Steps:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Wait for HR to review your application</li>
+                            <li>Check your notifications regularly</li>
+                            <li>You may be contacted for an interview</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                        <i class="fas fa-thumbs-up me-1"></i>Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+    
+    <?php if ($show_success_modal): ?>
+    <script>
+        // Show the success modal automatically when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            var successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+        });
+    </script>
+    <?php endif; ?>
 </body>
 </html>

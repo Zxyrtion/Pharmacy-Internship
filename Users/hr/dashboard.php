@@ -270,6 +270,8 @@ $unread_count = $notification->getUnreadCount($user_id);
                                         $link = 'edit_work_schedule.php?schedule_id=' . $n['related_id'];
                                     } elseif ($n['type'] === 'task_completed') {
                                         $link = 'employees.php';
+                                    } elseif ($n['type'] === 'new_application') {
+                                        $link = 'internship_applications.php';
                                     }
                                 ?>
                                     <a href="<?php echo htmlspecialchars($link); ?>" 
@@ -283,6 +285,8 @@ $unread_count = $notification->getUnreadCount($user_id);
                                                         <i class="bi bi-x-circle-fill text-danger"></i>
                                                     <?php elseif ($n['type'] === 'task_completed'): ?>
                                                         <i class="bi bi-clipboard-check-fill text-success"></i>
+                                                    <?php elseif ($n['type'] === 'new_application'): ?>
+                                                        <i class="bi bi-file-earmark-text-fill text-info"></i>
                                                     <?php else: ?>
                                                         <i class="bi bi-info-circle-fill text-primary"></i>
                                                     <?php endif; ?>
@@ -404,7 +408,7 @@ $unread_count = $notification->getUnreadCount($user_id);
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-person-plus feature-icon"></i>
-                        <h4>Employees</h4>
+                        <h4>Employees Task</h4>
                         <p>Manage employee records</p>
                         <a href="employees.php" class="btn btn-primary">View All</a>
                     </div>
@@ -415,7 +419,7 @@ $unread_count = $notification->getUnreadCount($user_id);
                         <i class="bi bi-person-badge feature-icon"></i>
                         <h4>Employee Profiles</h4>
                         <p>View detailed employee profiles and documents</p>
-                        <a href="employee_profiles.php" class="btn btn-primary">View Profiles</a>
+                        <a href="view_ready_interns.php" class="btn btn-primary">View Profiles</a>
                     </div>
                 </div>
                 

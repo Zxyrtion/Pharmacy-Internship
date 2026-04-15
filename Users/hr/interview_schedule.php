@@ -139,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['interview_assigned_count'] = $assigned_count;
                 $_SESSION['interview_date'] = $schedule_info['interview_date'];
                 $_SESSION['interview_time'] = $schedule_info['interview_time'];
+                $_SESSION['last_schedule_id'] = $schedule_id;
             } else {
                 $error = "Please select at least one applicant.";
             }
@@ -634,28 +635,38 @@ $next_batch = $batch_result->fetch_assoc()['next_batch'];
     <div class="modal fade" id="interviewSuccessModal" tabindex="-1" aria-labelledby="interviewSuccessModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-info text-white">
+                <div class="modal-header bg-success text-white">
                     <h5 class="modal-title" id="interviewSuccessModalLabel">
-                        <i class="bi bi-calendar-check"></i> Interview Schedule Updated!
+                        <i class="bi bi-calendar-check-fill"></i> Interview Schedule Sent Successfully!
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="text-center">
-                        <div class="mb-3">
-                            <i class="bi bi-calendar-check text-info" style="font-size: 3rem;"></i>
-                        </div>
-                        <h5 class="mb-3">Interviews Scheduled Successfully!</h5>
-                        <p class="mb-2"><strong>Applicants Assigned:</strong> <?php echo $_SESSION['interview_assigned_count'] ?? 0; ?></p>
-                        <p class="mb-2"><strong>Interview Date:</strong> <?php echo htmlspecialchars($_SESSION['interview_date'] ?? ''); ?></p>
-                        <p class="mb-2"><strong>Interview Time:</strong> <?php echo htmlspecialchars($_SESSION['interview_time'] ?? ''); ?></p>
-                        <p class="text-muted mb-0">All applicants have been notified and can view interview details in their dashboard.</p>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="bi bi-calendar-check-fill text-success" style="font-size: 4rem;"></i>
                     </div>
+                    <h5 class="mb-3">Interview Schedules Sent to Interns!</h5>
+                    
+                    <div class="alert alert-success text-start">
+                        <h6><i class="bi bi-info-circle"></i> Summary:</h6>
+                        <ul class="mb-0">
+                            <li><strong><?php echo $_SESSION['interview_assigned_count'] ?? 0; ?></strong> applicant(s) assigned</li>
+                            <li><strong>Date:</strong> <?php echo isset($_SESSION['interview_date']) ? date('F d, Y', strtotime($_SESSION['interview_date'])) : ''; ?></li>
+                            <li><strong>Time:</strong> <?php echo isset($_SESSION['interview_time']) ? date('h:i A', strtotime($_SESSION['interview_time'])) : ''; ?></li>
+                        </ul>
+                    </div>
+                    
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-bell-fill"></i> All selected interns have been notified via their dashboard notifications. 
+                        They can now view their interview schedule details.
+                    </p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <a href="dashboard.php" class="btn btn-primary">
-                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Close
+                    </button>
+                    <a href="view_interview_batch.php?id=<?php echo $_SESSION['last_schedule_id'] ?? ''; ?>" class="btn btn-primary">
+                        <i class="bi bi-eye"></i> View Batch Details
                     </a>
                 </div>
             </div>
@@ -674,7 +685,8 @@ $next_batch = $batch_result->fetch_assoc()['next_batch'];
                 unset($_SESSION['interview_assigned_success']); 
                 unset($_SESSION['interview_assigned_count']); 
                 unset($_SESSION['interview_date']); 
-                unset($_SESSION['interview_time']); 
+                unset($_SESSION['interview_time']);
+                unset($_SESSION['last_schedule_id']); 
                 ?>
             }, 500);
         <?php endif; ?>

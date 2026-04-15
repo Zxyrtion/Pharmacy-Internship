@@ -386,11 +386,7 @@ $working_days_array = explode(',', $schedule['working_days']);
                     <!-- Hidden field for formatted schedule -->
                     <input type="hidden" name="work_schedule_details" id="work_schedule_details">
                     
-                    <!-- Schedule Preview -->
-                    <div class="shift-example">
-                        <h6><i class="bi bi-eye"></i> Schedule Preview:</h6>
-                        <pre class="mb-0" style="font-size: 0.9rem;" id="schedulePreview">Loading preview...</pre>
-                    </div>
+            
                     
                     <div class="d-flex justify-content-between mt-4">
                         <a href="dashboard.php" class="btn btn-secondary">

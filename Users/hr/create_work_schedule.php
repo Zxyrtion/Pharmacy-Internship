@@ -63,21 +63,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     $shift_time = $shift_times[$shift_type];
     
-    // Insert into work_schedules table
-    $insert_sql = "INSERT INTO work_schedules (
-        evaluation_id, user_id, created_by,
-        start_date, department, shift_type, shift_time,
-        working_days, supervisor_name, location, special_instructions,
-        formatted_schedule, status, sent_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())";
+    // Handle MOA document upload by HR
+    $moa_document_path = null;
+    $moa_document_name = null;
     
-    $insert_stmt = $conn->prepare($insert_sql);
-    $insert_stmt->bind_param("iiisssssssss",
-        $evaluation_id, $evaluation['intern_user_id'], $user_id,
-        $work_start_date, $department, $shift_type, $shift_time,
-        $working_days, $supervisor, $location, $special_instructions,
-        $formatted_schedule
-    );
+    if (isset($_FILES['moa_document']) && $_FILES['moa_document']['error'] === UPLOAD_ERR_OK) {
+        $moa_file = $_FILES['moa_document'];
+        $allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        
+        if (in_array($moa_file['type'], $allowed_types)) {
+            // Create upload directory for HR MOA documents
+            $moa_upload_dir = '../../uploads/moa_documents/';
+            if (!file_exists($moa_upload_dir)) {
+                mkdir($moa_upload_dir, 0777, true);
+            }
+            
+            // Generate unique filename
+            $moa_file_extension = pathinfo($moa_file['name'], PATHINFO_EXTENSION);
+            $moa_new_filename = 'moa_' . $evaluation['intern_user_id'] . '_' . time() . '.' . $moa_file_extension;
+            $moa_upload_path = $moa_upload_dir . $moa_new_filename;
+            
+            if (move_uploaded_file($moa_file['tmp_name'], $moa_upload_path)) {
+                $moa_document_path = $moa_upload_path;
+                $moa_document_name = $moa_file['name'];
+            }
+        }
+    }
+    
+    // Check if moa_document columns exist in work_schedules table
+    $check_columns = $conn->query("SHOW COLUMNS FROM work_schedules LIKE 'moa_document_path'");
+    $has_moa_columns = $check_columns->num_rows > 0;
+    
+    // Insert into work_schedules table
+    if ($has_moa_columns) {
+        // New version with MOA columns
+        $insert_sql = "INSERT INTO work_schedules (
+            evaluation_id, user_id, created_by,
+            start_date, department, shift_type, shift_time,
+            working_days, supervisor_name, location, special_instructions,
+            formatted_schedule, moa_document_path, moa_document_name, status, sent_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())";
+        
+        $insert_stmt = $conn->prepare($insert_sql);
+        $insert_stmt->bind_param("iiisssssssssss",
+            $evaluation_id, $evaluation['intern_user_id'], $user_id,
+            $work_start_date, $department, $shift_type, $shift_time,
+            $working_days, $supervisor, $location, $special_instructions,
+            $formatted_schedule, $moa_document_path, $moa_document_name
+        );
+    } else {
+        // Old version without MOA columns (fallback)
+        $insert_sql = "INSERT INTO work_schedules (
+            evaluation_id, user_id, created_by,
+            start_date, department, shift_type, shift_time,
+            working_days, supervisor_name, location, special_instructions,
+            formatted_schedule, status, sent_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())";
+        
+        $insert_stmt = $conn->prepare($insert_sql);
+        $insert_stmt->bind_param("iiissssssss",
+            $evaluation_id, $evaluation['intern_user_id'], $user_id,
+            $work_start_date, $department, $shift_type, $shift_time,
+            $working_days, $supervisor, $location, $special_instructions,
+            $formatted_schedule
+        );
+    }
     
     if ($insert_stmt->execute()) {
         // Update evaluation record to mark schedule as sent
@@ -243,17 +293,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
                 
-                <!-- Rating Summary -->
-                <div class="rating-display">
-                    <h6><i class="bi bi-star-fill text-warning"></i> Evaluation Summary</h6>
-                    <p class="mb-0 small">
-                        <strong>Overall Evaluation:</strong><br>
-                        <?php echo nl2br(htmlspecialchars($evaluation['overall_evaluation'])); ?>
-                    </p>
-                </div>
+           
                 
                 <!-- Work Schedule Form -->
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     <h5 class="mb-3"><i class="bi bi-calendar-plus"></i> Work Schedule Details</h5>
                     
                     <div class="mb-4">
@@ -373,14 +416,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                   placeholder="e.g., Lunch break 12-1 PM, Bring white uniform"></textarea>
                     </div>
                     
+                    <!-- MOA Document Upload Section for HR -->
+                    <div class="mb-4">
+                        <label class="form-label"><strong>Upload MOA Document</strong></label>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            Upload the Memorandum of Agreement document that the intern will review and sign.
+                        </div>
+                        <div class="file-upload-area mb-2" onclick="document.getElementById('moa_document').click()" style="border: 2px dashed #667eea; border-radius: 10px; padding: 1.5rem; text-align: center; background: #f8f9fa; cursor: pointer; transition: all 0.3s;">
+                            <i class="bi bi-cloud-upload" style="font-size: 2rem; color: #667eea;"></i>
+                            <h6 class="mt-2">Click to upload MOA document</h6>
+                            <p class="text-muted mb-0 small">PDF or Word document (Max 10MB)</p>
+                        </div>
+                        <input type="file" class="form-control d-none" id="moa_document" name="moa_document" 
+                               accept=".pdf,.doc,.docx" onchange="showMOAFileName()">
+                        <div id="moaFileName" class="mt-2 text-success" style="display: none;">
+                            <i class="bi bi-file-earmark-check"></i> <span id="moaFileNameText"></span>
+                        </div>
+                    </div>
+                    
                     <!-- Hidden field for formatted schedule -->
                     <input type="hidden" name="work_schedule_details" id="work_schedule_details">
                     
-                    <!-- Schedule Preview -->
-                    <div class="shift-example">
-                        <h6><i class="bi bi-eye"></i> Schedule Preview:</h6>
-                        <pre class="mb-0" style="font-size: 0.9rem;" id="schedulePreview">Please select shift type and working days to see preview...</pre>
-                    </div>
                     
                     <div class="d-flex justify-content-between mt-4">
                         <a href="evaluate_interview.php" class="btn btn-secondary">
@@ -407,6 +464,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'night': '11 PM - 7 AM',
             'full_day': '8 AM - 5 PM'
         };
+        
+        function showMOAFileName() {
+            const input = document.getElementById('moa_document');
+            const fileName = document.getElementById('moaFileName');
+            const fileNameText = document.getElementById('moaFileNameText');
+            
+            if (input.files.length > 0) {
+                fileNameText.textContent = input.files[0].name;
+                fileName.style.display = 'block';
+            }
+        }
         
         function applyTemplate(template) {
             // Uncheck all first
