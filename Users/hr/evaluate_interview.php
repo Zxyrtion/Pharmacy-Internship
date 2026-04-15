@@ -125,19 +125,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $update_stmt->bind_param("i", $assignment_id);
                 $update_stmt->execute();
                 
-                // If accepted (rating 4-5), redirect to work schedule page
+                // Set session variables for modal
+                $_SESSION['evaluation_success'] = true;
+                $_SESSION['evaluation_decision'] = $final_decision;
+                $_SESSION['evaluation_rating'] = $average_rating;
+                
+                // If accepted (rating 4-5), store evaluation ID for work schedule
                 if ($final_decision === 'accepted') {
-                    header("Location: create_work_schedule.php?evaluation_id=" . $evaluation_id);
-                    exit();
+                    $_SESSION['redirect_to_schedule'] = $evaluation_id;
                 } else {
                     // If rejected, update status immediately
                     $status_sql = "UPDATE internship_records SET application_status = 'rejected' WHERE user_id = ?";
                     $status_stmt = $conn->prepare($status_sql);
                     $status_stmt->bind_param("i", $intern_user_id);
                     $status_stmt->execute();
-                    
-                    $success = "Evaluation submitted successfully! Intern has been REJECTED.";
                 }
+                
+                // Redirect back to same page to show modal
+                header("Location: evaluate_interview.php");
+                exit();
                 
             } else {
                 $error = "Failed to submit evaluation: " . $stmt->error;
@@ -646,6 +652,61 @@ while ($row = $evaluated_result->fetch_assoc()) {
         </div>
     </div>
     
+    <!-- Evaluation Success Modal -->
+    <div class="modal fade" id="evaluationSuccessModal" tabindex="-1" aria-labelledby="evaluationSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="evaluationSuccessModalLabel">
+                        <i class="bi bi-check-circle-fill"></i> Evaluation Completed!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="bi bi-clipboard-check-fill text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="mb-3">Interview Evaluation Submitted Successfully!</h5>
+                    
+                    <div class="alert alert-info text-start">
+                        <h6><i class="bi bi-info-circle"></i> Evaluation Summary:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Average Rating:</strong> <?php echo isset($_SESSION['evaluation_rating']) ? number_format($_SESSION['evaluation_rating'], 2) : ''; ?> / 5.0</li>
+                            <li><strong>Decision:</strong> 
+                                <?php if (isset($_SESSION['evaluation_decision'])): ?>
+                                    <span class="badge bg-<?php echo $_SESSION['evaluation_decision'] === 'accepted' ? 'success' : 'danger'; ?>">
+                                        <?php echo strtoupper($_SESSION['evaluation_decision']); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <?php if (isset($_SESSION['evaluation_decision']) && $_SESSION['evaluation_decision'] === 'accepted'): ?>
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-calendar-week"></i> Click the button below to create the work schedule for this intern.
+                        </p>
+                    <?php else: ?>
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-x-circle"></i> The intern has been notified of the decision.
+                        </p>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Close
+                    </button>
+                    <?php if (isset($_SESSION['evaluation_decision']) && $_SESSION['evaluation_decision'] === 'accepted'): ?>
+                        <a href="create_work_schedule.php?evaluation_id=<?php echo $_SESSION['redirect_to_schedule'] ?? ''; ?>" class="btn btn-primary">
+                            <i class="bi bi-calendar-week"></i> Create Work Schedule
+                        </a>
+                        <?php unset($_SESSION['redirect_to_schedule']); ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -673,6 +734,22 @@ while ($row = $evaluated_result->fetch_assoc()) {
             // Redirect to view evaluation details page
             window.location.href = 'view_evaluation.php?id=' + evaluationId;
         }
+        
+        // Show evaluation success modal if evaluation was just submitted
+        <?php if (isset($_SESSION['evaluation_success']) && $_SESSION['evaluation_success']): ?>
+            document.addEventListener('DOMContentLoaded', function() {
+                var successModal = new bootstrap.Modal(document.getElementById('evaluationSuccessModal'));
+                successModal.show();
+            });
+            
+            // Clear session variables after showing modal
+            <?php 
+            unset($_SESSION['evaluation_success']); 
+            unset($_SESSION['evaluation_decision']); 
+            unset($_SESSION['evaluation_rating']);
+            // Don't unset redirect_to_schedule yet, needed for the button
+            ?>
+        <?php endif; ?>
     </script>
 </body>
 </html>

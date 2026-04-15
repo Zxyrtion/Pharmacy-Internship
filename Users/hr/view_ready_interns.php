@@ -18,7 +18,7 @@ $full_name = $_SESSION['full_name'];
 
 // Get all interns with acknowledged schedules (ready to work)
 $ready_sql = "SELECT ws.*, 
-              u.first_name, u.last_name, u.email,
+              u.id as intern_id, u.first_name, u.last_name, u.email,
               ie.average_rating, ie.final_decision,
               moa.id as moa_id, moa.intern_signature, moa.accepted_at as moa_accepted_at, 
               moa.ip_address, moa.moa_document_path, moa.moa_document_name,
@@ -30,6 +30,11 @@ $ready_sql = "SELECT ws.*,
               WHERE ws.status = 'acknowledged' AND moa.status = 'active'
               ORDER BY moa.accepted_at DESC";
 $ready_result = $conn->query($ready_sql);
+
+if (!$ready_result) {
+    die("Query failed: " . $conn->error);
+}
+
 $ready_interns = [];
 while ($row = $ready_result->fetch_assoc()) {
     $ready_interns[] = $row;
@@ -192,7 +197,7 @@ while ($row = $ready_result->fetch_assoc()) {
                                     <small class="text-muted">Start Date:</small>
                                     <p class="mb-0"><strong><?php echo date('M d, Y', strtotime($intern['start_date'])); ?></strong></p>
                                     <small class="text-muted">MOA Signed:</small>
-                                    <p class="mb-0"><?php echo date('M d, Y h:i A', strtotime($intern['moa_signed_at'])); ?></p>
+                                    <p class="mb-0"><?php echo date('M d, Y h:i A', strtotime($intern['moa_accepted_at'])); ?></p>
                                 </div>
                                 <div class="col-md-2 text-end">
                                     <span class="moa-badge">
@@ -241,49 +246,5 @@ while ($row = $ready_result->fetch_assoc()) {
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        function viewDetails(scheduleId) {
-            const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
-            modal.show();
-            
-            // Load details via AJAX
-            fetch('get_intern_schedule_details.php?id=' + scheduleId)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const intern = data.intern;
-                        document.getElementById('modalContent').innerHTML = `
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Personal Information</h6>
-                                    <p><strong>Name:</strong> ${intern.first_name} ${intern.last_name}</p>
-                                    <p><strong>Email:</strong> ${intern.email}</p>
-                                    <p><strong>MOA Signature:</strong> ${intern.moa_signature}</p>
-                                    <p><strong>Signed At:</strong> ${intern.moa_signed_at}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Work Schedule</h6>
-                                    <p><strong>Start Date:</strong> ${intern.start_date}</p>
-                                    <p><strong>Department:</strong> ${intern.department}</p>
-                                    <p><strong>Shift:</strong> ${intern.shift_time}</p>
-                                    <p><strong>Supervisor:</strong> ${intern.supervisor_name}</p>
-                                    <p><strong>Location:</strong> ${intern.location}</p>
-                                </div>
-                                <div class="col-12 mt-3">
-                                    <h6>Full Schedule</h6>
-                                    <pre class="bg-light p-3 rounded">${intern.formatted_schedule}</pre>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        document.getElementById('modalContent').innerHTML = '<div class="alert alert-danger">Failed to load details</div>';
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('modalContent').innerHTML = '<div class="alert alert-danger">Error loading details</div>';
-                });
-        }
-    </script>
 </body>
 </html>

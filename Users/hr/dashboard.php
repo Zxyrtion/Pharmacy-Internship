@@ -112,7 +112,6 @@ if (isset($conn)) {
                 <span class="navbar-text me-3">
                     <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($full_name); ?>
                 </span>
-                <a href="../logout.php" class="btn btn-logout">
                     <i class="bi bi-box-arrow-right"></i> Logout
                 </a>
             </div>
@@ -130,7 +129,7 @@ if (isset($conn)) {
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-person-plus feature-icon"></i>
-                        <h4>Employees</h4>
+                        <h4>Employees Task</h4>
                         <p>Manage employee records</p>
                         <button class="btn btn-primary">View All</button>
                     </div>
@@ -138,10 +137,7 @@ if (isset($conn)) {
                 
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
-                        <i class="bi bi-calendar-check feature-icon"></i>
-                        <h4>Attendance</h4>
-                        <p>Track employee attendance</p>
-                        <button class="btn btn-primary">View Report</button>
+
                     </div>
                 </div>
                 

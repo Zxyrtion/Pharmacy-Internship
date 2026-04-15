@@ -32,35 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ip_address = $_SERVER['REMOTE_ADDR'];
             $user_agent = $_SERVER['HTTP_USER_AGENT'];
             
-            // Handle file uploads
-            $moa_document_path = null;
-            $moa_document_name = null;
+            // Handle file uploads for signature only
             $signature_file_path = null;
             $signature_file_name = null;
-            
-            // Handle MOA document upload (optional)
-            if (isset($_FILES['moa_document']) && $_FILES['moa_document']['error'] === UPLOAD_ERR_OK) {
-                $moa_file = $_FILES['moa_document'];
-                $allowed_moa_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
-                
-                if (in_array($moa_file['type'], $allowed_moa_types)) {
-                    // Create upload directory if it doesn't exist
-                    $moa_upload_dir = '../../uploads/internship_documents/' . $user_id . '/';
-                    if (!file_exists($moa_upload_dir)) {
-                        mkdir($moa_upload_dir, 0777, true);
-                    }
-                    
-                    // Generate unique filename
-                    $moa_file_extension = pathinfo($moa_file['name'], PATHINFO_EXTENSION);
-                    $moa_new_filename = 'moa_' . $schedule_id . '_' . time() . '.' . $moa_file_extension;
-                    $moa_upload_path = $moa_upload_dir . $moa_new_filename;
-                    
-                    if (move_uploaded_file($moa_file['tmp_name'], $moa_upload_path)) {
-                        $moa_document_path = $moa_upload_path;
-                        $moa_document_name = $moa_file['name'];
-                    }
-                }
-            }
             
             // Handle signature file upload (if upload method is selected)
             if ($signature_method === 'upload' && isset($_FILES['signature_file']) && $_FILES['signature_file']['error'] === UPLOAD_ERR_OK) {
@@ -107,6 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $moa_content .= "Start Date: " . date('F d, Y', strtotime($schedule['start_date'])) . "\n\n";
                 $moa_content .= "Work Schedule:\n" . $schedule['formatted_schedule'];
                 
+                // Get MOA document path from work schedule (uploaded by HR)
+                $moa_document_path = $schedule['moa_document_path'];
+                $moa_document_name = $schedule['moa_document_name'];
+                
                 // Insert MOA record
                 $moa_sql = "INSERT INTO moa_agreements (
                     work_schedule_id, user_id, moa_content, moa_version,
@@ -114,17 +92,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     intern_signature, intern_full_name, intern_email,
                     accepted_at, ip_address, user_agent,
                     agreed_terms, agreed_confidentiality, agreed_schedule, status,
-                    moa_document_path, moa_document_name, signature_file_path, signature_file_name
-                ) VALUES (?, ?, ?, '1.0', CURDATE(), ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, 1, 1, 1, 'active', ?, ?, ?, ?)";
+                    moa_document_path, moa_document_name, signature_file_path, signature_file_name,
+                    moa_uploaded_by
+                ) VALUES (?, ?, ?, '1.0', CURDATE(), ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, 1, 1, 1, 'active', ?, ?, ?, ?, ?)";
                 
                 $moa_stmt = $conn->prepare($moa_sql);
-                $moa_stmt->bind_param("iissssssssssssss",
+                $moa_stmt->bind_param("iissssssssssssssi",
                     $schedule_id, $user_id, $moa_content,
                     $schedule['start_date'], $schedule['department'], 
                     $schedule['supervisor_name'], $schedule['location'],
                     $digital_signature, $full_name, $email,
                     $ip_address, $user_agent,
-                    $moa_document_path, $moa_document_name, $signature_file_path, $signature_file_name
+                    $moa_document_path, $moa_document_name, $signature_file_path, $signature_file_name,
+                    $schedule['created_by']
                 );
                 
                 if ($moa_stmt->execute()) {
@@ -696,24 +676,37 @@ $work_schedule = $schedule_result->fetch_assoc();
                             </label>
                         </div>
                         
-                        <!-- MOA Document Upload Section -->
+                        <!-- View MOA Document Section (Uploaded by HR) -->
+                        <?php if (!empty($work_schedule['moa_document_path'])): ?>
                         <div class="mb-4 mt-4">
-                            <label class="form-label"><strong>Upload Signed MOA Document (Optional)</strong></label>
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle"></i> 
-                                You can upload a pre-signed MOA document if you have one. If not, you can proceed with the digital signature below.
+                            <label class="form-label"><strong>MOA Document (Uploaded by HR)</strong></label>
+                            <div class="alert alert-success">
+                                <i class="bi bi-file-earmark-check"></i> 
+                                HR has uploaded the MOA document for you to review.
                             </div>
-                            <div class="file-upload-area mb-2" onclick="document.getElementById('moa_document').click()" style="border: 2px dashed #667eea; border-radius: 10px; padding: 1.5rem; text-align: center; background: #f8f9fa; cursor: pointer; transition: all 0.3s;">
-                                <i class="bi bi-cloud-upload" style="font-size: 2rem; color: #667eea;"></i>
-                                <h6 class="mt-2">Click to upload MOA document</h6>
-                                <p class="text-muted mb-0 small">PDF, JPG, PNG or Word document (Max 10MB)</p>
-                            </div>
-                            <input type="file" class="form-control d-none" id="moa_document" name="moa_document" 
-                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="showMOAFileName()">
-                            <div id="moaFileName" class="mt-2 text-success" style="display: none;">
-                                <i class="bi bi-file-earmark-check"></i> <span id="moaFileNameText"></span>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-file-earmark-pdf text-danger" style="font-size: 2rem;"></i>
+                                            <strong class="ms-2"><?php echo htmlspecialchars($work_schedule['moa_document_name']); ?></strong>
+                                        </div>
+                                        <a href="<?php echo htmlspecialchars($work_schedule['moa_document_path']); ?>" 
+                                           target="_blank" class="btn btn-primary">
+                                            <i class="bi bi-eye"></i> View Document
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        <?php else: ?>
+                        <div class="mb-4 mt-4">
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                No MOA document has been uploaded by HR yet.
+                            </div>
+                        </div>
+                        <?php endif; ?>
                         
                         <!-- Digital Signature Section -->
                         <div class="mb-4 mt-3">
@@ -771,17 +764,6 @@ $work_schedule = $schedule_result->fetch_assoc();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function showMOAFileName() {
-            const input = document.getElementById('moa_document');
-            const fileName = document.getElementById('moaFileName');
-            const fileNameText = document.getElementById('moaFileNameText');
-            
-            if (input.files.length > 0) {
-                fileNameText.textContent = input.files[0].name;
-                fileName.style.display = 'block';
-            }
-        }
-        
         function showSignatureFileName() {
             const input = document.getElementById('signature_file');
             const fileName = document.getElementById('signatureFileName');

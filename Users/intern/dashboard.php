@@ -106,7 +106,7 @@ $email = $_SESSION['email'];
                 <span class="navbar-text me-3">
                     <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($full_name); ?>
                 </span>
-                <a href="../logout.php" class="btn btn-logout">
+
                     <i class="bi bi-box-arrow-right"></i> Logout
                 </a>
             </div>
@@ -156,60 +156,3 @@ $email = $_SESSION['email'];
                         <button class="btn btn-primary">View Progress</button>
                     </div>
                 </div>
-<<<<<<< HEAD
-
-                <div class="col-md-6 col-lg-3 mb-4">
-                    <div class="feature-card">
-                        <i class="bi bi-box-seam feature-icon"></i>
-                        <h4>Product Inventory</h4>
-                        <p>Manage product inventory</p>
-                        <a href="product_inventory.php" class="btn btn-primary">Manage Inventory</a>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3 mb-4">
-                    <div class="feature-card">
-                        <i class="bi bi-file-earmark-text feature-icon"></i>
-                        <h4>Inventory Report</h4>
-                        <p>Submit reports to HR</p>
-                        <a href="inventory_report.php" class="btn btn-primary">Create Report</a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="dashboard-card">
-                <h3><i class="bi bi-clock-history feature-icon"></i> Recent Activities</h3>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Activity</th>
-                                <th>Supervisor</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Medication Dispensing</td>
-                                <td>Dr. Smith</td>
-                                <td>2024-04-14</td>
-                                <td><span class="badge bg-success">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Inventory Management</td>
-                                <td>Ms. Johnson</td>
-                                <td>2024-04-13</td>
-                                <td><span class="badge bg-warning">In Progress</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
