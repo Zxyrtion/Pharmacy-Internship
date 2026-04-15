@@ -175,15 +175,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // notify employee
                 $notif_title   = 'New task assigned';
                 $notif_message = "HR assigned you a task: {$title} ({$date_from} to {$date_to}).";
-                $notif_link    = BASE_URL . 'Users/intern/tasks.php';
+                $notif_type    = 'task_assigned';
 
-                $nstmt = $conn->prepare("INSERT INTO notifications (user_id, title, message, link) VALUES (?, ?, ?, ?)");
+                $nstmt = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at) VALUES (?, ?, ?, ?, NULL, 0, NOW())");
                 if ($nstmt) {
-                    $nstmt->bind_param("isss", $employee_id, $notif_title, $notif_message, $notif_link);
+                    $nstmt->bind_param("isss", $employee_id, $notif_type, $notif_title, $notif_message);
                     $nstmt->execute();
                 }
 
-                $_SESSION['flash_success'] = 'Task assigned successfully.';
+                $_SESSION['task_assigned_success'] = true;
+                $_SESSION['task_assigned_title'] = $title;
+                $_SESSION['task_assigned_to'] = $emp_name;
                 header('Location: assign_task.php?user_id=' . (int)$employee_id);
                 exit();
             } else {
@@ -370,7 +372,53 @@ $emp_name = preg_replace('/\s+/', ' ', $emp_name);
             </div>
         </div>
     </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="taskSuccessModal" tabindex="-1" aria-labelledby="taskSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="taskSuccessModalLabel">
+                        <i class="bi bi-check-circle"></i> Task Assigned Successfully!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-clipboard-check text-success" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="mb-3">Task has been assigned!</h5>
+                        <p class="mb-2"><strong>Task Title:</strong> <?php echo htmlspecialchars($_SESSION['task_assigned_title'] ?? ''); ?></p>
+                        <p class="mb-2"><strong>Assigned to:</strong> <?php echo htmlspecialchars($_SESSION['task_assigned_to'] ?? ''); ?></p>
+                        <p class="text-muted mb-0">The intern has been notified and can view this task in their dashboard.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="dashboard.php" class="btn btn-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show success modal if task was assigned
+        <?php if (isset($_SESSION['task_assigned_success']) && $_SESSION['task_assigned_success']): ?>
+            const successModal = new bootstrap.Modal(document.getElementById('taskSuccessModal'));
+            successModal.show();
+            
+            // Clear the session variable after showing modal
+            setTimeout(() => {
+                <?php unset($_SESSION['task_assigned_success']); ?>
+                <?php unset($_SESSION['task_assigned_title']); ?>
+                <?php unset($_SESSION['task_assigned_to']); ?>
+            }, 500);
+        <?php endif; ?>
+    </script>
 </body>
 </html>
 

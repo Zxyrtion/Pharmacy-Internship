@@ -17,7 +17,7 @@ $full_name = $_SESSION['full_name'] ?? 'Intern';
 $routine_table = 'internship_routine';
 
 // Add status column if it doesn't exist yet
-$conn->query("ALTER TABLE `{$routine_table}` ADD COLUMN IF NOT EXISTS `status` VARCHAR(20) NOT NULL DEFAULT 'pending'");
+$conn->query("ALTER TABLE `{$routine_table}` ADD COLUMN IF NOT EXISTS `status` VARCHAR(30) NOT NULL DEFAULT 'pending'");
 
 // Update task status (Intern can only update their own tasks)
 $flash_success = '';
@@ -35,6 +35,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upd->bind_param("sii", $new_status, $task_id, $user_id);
             if ($upd->execute() && $upd->affected_rows >= 0) {
                 $flash_success = 'Task status updated.';
+                
+                // Create notification for task status update
+                $notif_stmt = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at) VALUES (?, ?, ?, ?, NULL, 0, NOW())");
+                if ($notif_stmt) {
+                    $notif_type = "task_status_updated";
+                    $title = "Task Status Updated";
+                    $message = "Your task status has been updated to: " . ucfirst($new_status);
+                    $notif_stmt->bind_param("isss", $user_id, $notif_type, $title, $message);
+                    $notif_stmt->execute();
+                }
+                
                 header('Location: tasks.php');
                 exit();
             } else {
@@ -47,10 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Mark task notifications as read when intern opens this page
-$tasks_link = BASE_URL . 'Users/intern/tasks.php';
-$mark_stmt  = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND link = ?");
+$mark_stmt  = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND type IN ('task_assigned', 'task_status_updated')");
 if ($mark_stmt) {
-    $mark_stmt->bind_param("is", $user_id, $tasks_link);
+    $mark_stmt->bind_param("i", $user_id);
     $mark_stmt->execute();
 }
 
