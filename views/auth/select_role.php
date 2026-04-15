@@ -64,7 +64,7 @@ if ($roles_result) {
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="/Pharmacy-Internship/style.css">
     
     <style>
         .role-selection-container {

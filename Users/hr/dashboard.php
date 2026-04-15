@@ -118,10 +118,46 @@ $email = $_SESSION['email'];
             <div class="row">
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
-                        <i class="bi bi-person-plus feature-icon"></i>
-                        <h4>Employees</h4>
-                        <p>Manage employee records</p>
-                        <button class="btn btn-primary">View All</button>
+                        <i class="bi bi-file-earmark-text feature-icon"></i>
+                        <h4>Intern Applicants</h4>
+                        <p>Review internship applications</p>
+                        <a href="internship_applications.php" class="btn btn-success">Review Applications</a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-folder-fill feature-icon"></i>
+                        <h4>Pharmacy Policies</h4>
+                        <p>Organize policies and guidelines</p>
+                        <a href="pharmacy_policies.php" class="btn btn-primary">Manage Documents</a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-calendar-check feature-icon"></i>
+                        <h4>Interview Schedule</h4>
+                        <p>Manage interview batches and schedules</p>
+                        <a href="interview_schedule.php" class="btn btn-info">View Schedule</a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-clipboard-check feature-icon"></i>
+                        <h4>Evaluate Interviews</h4>
+                        <p>Rate and evaluate completed interviews</p>
+                        <a href="evaluate_interview.php" class="btn btn-success">Evaluate Now</a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-people-fill feature-icon text-success"></i>
+                        <h4>Active Interns</h4>
+                        <p>View interns who signed MOA</p>
+                        <a href="view_ready_interns.php" class="btn btn-success">View Interns</a>
                     </div>
                 </div>
                 
@@ -130,7 +166,7 @@ $email = $_SESSION['email'];
                         <i class="bi bi-calendar-check feature-icon"></i>
                         <h4>Attendance</h4>
                         <p>Track employee attendance</p>
-                        <button class="btn btn-primary">View Report</button>
+                        <a href="attendance.php" class="btn btn-primary">View Report</a>
                     </div>
                 </div>
                 
