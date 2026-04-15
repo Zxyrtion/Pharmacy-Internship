@@ -1,5 +1,6 @@
 <?php
 require_once '../../config.php';
+require_once '../../models/purchase_order.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {
@@ -9,13 +10,17 @@ if (!isLoggedIn()) {
 
 // Check if user has correct role
 if ($_SESSION['role_name'] !== 'Pharmacy Technician') {
-    header('Location: ../index.php');
+    header('Location: /Pharmacy-Internship/index.php');
     exit();
 }
 
 $user_id = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
 $email = $_SESSION['email'];
+
+// Get requisition stats
+$purchaseOrder = new PurchaseOrder($conn);
+$req_stats = $purchaseOrder->getUserRequisitionStats($user_id);
 ?>
 
 <!DOCTYPE html>
@@ -88,12 +93,28 @@ $email = $_SESSION['email'];
             background: #c0392b;
             transform: translateY(-2px);
         }
+        
+        .stat-box {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 0.5rem 0;
+        }
+        
+        .stat-box h2 {
+            margin: 0;
+            font-weight: bold;
+        }
+        
+        .stat-box p {
+            margin: 0.5rem 0 0 0;
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="../index.php">
+            <a class="navbar-brand" href="/Pharmacy-Internship/index.php">
                 <i class="bi bi-hospital"></i> MediCare Pharmacy
             </a>
             
@@ -115,7 +136,54 @@ $email = $_SESSION['email'];
                 <p class="mb-0">Welcome back, <?php echo htmlspecialchars($full_name); ?>! Prepare medications and manage inventory.</p>
             </div>
             
+            <!-- Requisition Stats -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="dashboard-card">
+                        <h3><i class="bi bi-graph-up"></i> My Requisition Statistics</h3>
+                        <div class="row text-center mt-3">
+                            <div class="col-md-2">
+                                <div class="stat-box">
+                                    <h2 class="text-primary"><?php echo $req_stats['total']; ?></h2>
+                                    <p class="text-muted">Total</p>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="stat-box">
+                                    <h2 class="text-secondary"><?php echo $req_stats['submitted']; ?></h2>
+                                    <p class="text-muted">Submitted</p>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="stat-box">
+                                    <h2 class="text-success"><?php echo $req_stats['approved']; ?></h2>
+                                    <p class="text-muted">Approved</p>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="stat-box">
+                                    <h2 class="text-danger"><?php echo $req_stats['rejected']; ?></h2>
+                                    <p class="text-muted">Rejected</p>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="stat-box">
+                                    <h2 class="text-info"><?php echo $req_stats['processed']; ?></h2>
+                                    <p class="text-muted">Processed</p>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <a href="my_requisitions.php" class="btn btn-primary mt-3">
+                                    <i class="bi bi-eye"></i> View All
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="row">
+                <!-- Process 11: Check inventory report -->
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-capsule feature-icon"></i>
@@ -124,31 +192,32 @@ $email = $_SESSION['email'];
                         <button class="btn btn-primary">View Queue</button>
                     </div>
                 </div>
-                
+
+                <!-- Process 12: Request additional stocks -->
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-box-seam feature-icon"></i>
-                        <h4>Inventory</h4>
-                        <p>Manage stock and supplies</p>
-                        <button class="btn btn-primary">Manage</button>
+                        <h4>Request Stocks</h4>
+                        <p>Request additional stock supplies</p>
+                        <a href="create_requisition.php" class="btn btn-primary">Request</a>
                     </div>
                 </div>
-                
+
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
-                        <i class="bi bi-clipboard-check feature-icon"></i>
-                        <h4>Quality Control</h4>
-                        <p>Ensure medication quality</p>
-                        <button class="btn btn-primary">Check</button>
+                        <i class="bi bi-file-text feature-icon"></i>
+                        <h4>My Requisitions</h4>
+                        <p>View submitted requisitions</p>
+                        <a href="my_requisitions.php" class="btn btn-primary">View</a>
                     </div>
                 </div>
-                
+
                 <div class="col-md-6 col-lg-3 mb-4">
                     <div class="feature-card">
                         <i class="bi bi-graph-up feature-icon"></i>
-                        <h4>Reports</h4>
-                        <p>View preparation reports</p>
-                        <button class="btn btn-primary">View</button>
+                        <h4>Inventory Reports</h4>
+                        <p>View inventory reports</p>
+                        <a href="review_reports.php" class="btn btn-primary">View</a>
                     </div>
                 </div>
             </div>
