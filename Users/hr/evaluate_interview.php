@@ -509,9 +509,35 @@ while ($row = $evaluated_result->fetch_assoc()) {
                                                     <i class="bi bi-calendar-week"></i> Work Schedule
                                                 </a>
                                             <?php elseif ($eval['final_decision'] === 'accepted' && $eval['work_schedule_sent'] == 1): ?>
-                                                <span class="badge bg-success ms-1">
-                                                    <i class="bi bi-check-circle"></i> Schedule Sent
-                                                </span>
+                                                <?php
+                                                // Check if schedule was rejected
+                                                $check_sql = "SELECT id, status FROM work_schedules WHERE evaluation_id = ? ORDER BY created_at DESC LIMIT 1";
+                                                $check_stmt = $conn->prepare($check_sql);
+                                                $check_stmt->bind_param("i", $eval['id']);
+                                                $check_stmt->execute();
+                                                $schedule_result = $check_stmt->get_result();
+                                                $schedule_status = $schedule_result->fetch_assoc();
+                                                ?>
+                                                <?php if ($schedule_status && $schedule_status['status'] === 'rejected'): ?>
+                                                    <a href="edit_work_schedule.php?schedule_id=<?php echo $schedule_status['id']; ?>" 
+                                                       class="btn btn-sm btn-danger ms-1">
+                                                        <i class="bi bi-exclamation-triangle"></i> Rejected - Edit
+                                                    </a>
+                                                <?php elseif ($schedule_status && $schedule_status['status'] === 'acknowledged'): ?>
+                                                    <span class="badge bg-success ms-1">
+                                                        <i class="bi bi-check-circle"></i> Acknowledged
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-warning ms-1">
+                                                        <i class="bi bi-clock"></i> Sent
+                                                    </span>
+                                                    <?php if ($schedule_status): ?>
+                                                        <a href="edit_work_schedule.php?schedule_id=<?php echo $schedule_status['id']; ?>" 
+                                                           class="btn btn-sm btn-outline-secondary ms-1">
+                                                            <i class="bi bi-pencil"></i> Edit
+                                                        </a>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </td>
                                     </tr>

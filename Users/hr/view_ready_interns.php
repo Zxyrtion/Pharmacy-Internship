@@ -209,10 +209,6 @@ while ($row = $ready_result->fetch_assoc()) {
                                             <i class="bi bi-upload"></i> Upload MOA
                                         </a>
                                     <?php endif; ?>
-                                    <button class="btn btn-sm btn-outline-primary mt-2 w-100" 
-                                            onclick="viewDetails(<?php echo $intern['id']; ?>)">
-                                        <i class="bi bi-eye"></i> View Details
-                                    </button>
                                 </div>
                             </div>
                         </div>

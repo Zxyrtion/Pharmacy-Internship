@@ -19,6 +19,9 @@ $routine_table = 'internship_routine';
 // Add status column if it doesn't exist yet
 $conn->query("ALTER TABLE `{$routine_table}` ADD COLUMN IF NOT EXISTS `status` VARCHAR(30) NOT NULL DEFAULT 'pending'");
 
+// Add assigned_by_user_id column if it doesn't exist yet
+$conn->query("ALTER TABLE `{$routine_table}` ADD COLUMN IF NOT EXISTS `assigned_by_user_id` INT(11) DEFAULT NULL");
+
 // Update task status (Intern can only update their own tasks)
 $flash_success = '';
 $flash_error   = '';
@@ -36,15 +39,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($upd->execute() && $upd->affected_rows >= 0) {
                 $flash_success = 'Task status updated.';
                 
-                // Create notification for task status update
-                $notif_stmt = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at) VALUES (?, ?, ?, ?, NULL, 0, NOW())");
-                if ($notif_stmt) {
-                    $notif_type = "task_status_updated";
-                    $title = "Task Status Updated";
-                    $message = "Your task status has been updated to: " . ucfirst($new_status);
-                    $notif_stmt->bind_param("isss", $user_id, $notif_type, $title, $message);
-                    $notif_stmt->execute();
+                // Create notification if status is finished
+                if ($new_status === 'finished') {
+                    // Get HR user ID (hardcoded for now to test)
+                    $hr_user_id = 12; // Replace with actual HR user ID
+                    
+                    // Get task title
+                    $task_title = 'Task'; // Default
+                    $task_stmt = $conn->prepare("SELECT title FROM `{$routine_table}` WHERE id = ?");
+                    if ($task_stmt) {
+                        $task_stmt->bind_param("i", $task_id);
+                        $task_stmt->execute();
+                        $task_result = $task_stmt->get_result();
+                        if ($task_row = $task_result->fetch_assoc()) {
+                            $task_title = $task_row['title'];
+                        }
+                    }
+                    
+                    // Insert notification directly
+                    $notif_sql = "INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at) 
+                                 VALUES (12, 'task_completed', 'Task Completed', ?, NULL, 0, NOW())";
+                    $notif_stmt = $conn->prepare($notif_sql);
+                    if ($notif_stmt) {
+                        $msg = $full_name . " has completed the task: " . $task_title;
+                        $notif_stmt->bind_param("s", $msg);
+                        $notif_stmt->execute();
+                    }
                 }
+                
+                // Set session variable to show success modal
+                $_SESSION['task_status_updated'] = true;
+                $_SESSION['task_status_value'] = ucfirst($new_status);
+                $_SESSION['task_title'] = $task_title ?? 'Task';
                 
                 header('Location: tasks.php');
                 exit();
@@ -58,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Mark task notifications as read when intern opens this page
-$mark_stmt  = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND type IN ('task_assigned', 'task_status_updated')");
+$mark_stmt  = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND type IN ('task_assigned')");
 if ($mark_stmt) {
     $mark_stmt->bind_param("i", $user_id);
     $mark_stmt->execute();
@@ -231,8 +257,54 @@ if ($stmt) {
             </div>
         </div>
     </div>
+    
+    <!-- Task Status Update Success Modal -->
+    <div class="modal fade" id="taskStatusModal" tabindex="-1" aria-labelledby="taskStatusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="taskStatusModalLabel">
+                        <i class="bi bi-check-circle"></i> Task Status Updated!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="bi bi-clipboard-check text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="mb-3">Task status has been updated!</h5>
+                    <p class="mb-2"><strong>Task:</strong> <?php echo htmlspecialchars($_SESSION['task_title'] ?? ''); ?></p>
+                    <p class="mb-2"><strong>New Status:</strong> <span class="badge bg-success"><?php echo htmlspecialchars($_SESSION['task_status_value'] ?? ''); ?></span></p>
+                    <?php if (($_SESSION['task_status_value'] ?? '') === 'Finished'): ?>
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-info-circle"></i> HR has been notified that you completed this task.
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                        <i class="bi bi-check"></i> OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show success modal if task status was updated
+        <?php if (isset($_SESSION['task_status_updated']) && $_SESSION['task_status_updated']): ?>
+            const taskStatusModal = new bootstrap.Modal(document.getElementById('taskStatusModal'));
+            taskStatusModal.show();
+            
+            // Clear the session variable after showing modal
+            <?php 
+                unset($_SESSION['task_status_updated']); 
+                unset($_SESSION['task_status_value']);
+                unset($_SESSION['task_title']);
+            ?>
+        <?php endif; ?>
+    </script>
 </body>
 </html>
 
