@@ -372,7 +372,7 @@ if ($list_stmt) {
                                     $link = 'tasks.php';
                                     if ($n['type'] === 'interview_scheduled') {
                                         $link = 'view_interview.php';
-                                    } elseif ($n['type'] === 'work_schedule_assigned') {
+                                    } elseif ($n['type'] === 'work_schedule_assigned' || $n['type'] === 'work_schedule_updated') {
                                         $link = 'work_schedule.php';
                                     } elseif ($n['type'] === 'internship_schedule') {
                                         $link = 'view_schedule.php';

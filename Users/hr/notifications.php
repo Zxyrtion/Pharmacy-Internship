@@ -148,6 +148,8 @@ $unread_count = $notification->getUnreadCount($user_id);
                                 $link = 'edit_work_schedule.php?schedule_id=' . $n['related_id'];
                             } elseif ($n['type'] === 'task_completed') {
                                 $link = 'employees.php';
+                            } elseif ($n['type'] === 'new_application') {
+                                $link = 'internship_applications.php';
                             }
                         ?>
                             <div class="notification-item <?php echo $n['is_read'] == 0 ? 'unread' : ''; ?>">
@@ -160,6 +162,8 @@ $unread_count = $notification->getUnreadCount($user_id);
                                                 <i class="bi bi-x-circle-fill text-danger me-2" style="font-size: 1.5rem;"></i>
                                             <?php elseif ($n['type'] === 'task_completed'): ?>
                                                 <i class="bi bi-clipboard-check-fill text-success me-2" style="font-size: 1.5rem;"></i>
+                                            <?php elseif ($n['type'] === 'new_application'): ?>
+                                                <i class="bi bi-file-earmark-text-fill text-info me-2" style="font-size: 1.5rem;"></i>
                                             <?php else: ?>
                                                 <i class="bi bi-info-circle-fill text-primary me-2" style="font-size: 1.5rem;"></i>
                                             <?php endif; ?>
