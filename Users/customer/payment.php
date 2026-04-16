@@ -1,9 +1,24 @@
 <?php
+// DEBUG: Log every page load
+file_put_contents('payment_access.log', date('Y-m-d H:i:s') . " - Page accessed. Method: " . $_SERVER['REQUEST_METHOD'] . ", rx_id: " . ($_GET['rx_id'] ?? 'NONE') . "\n", FILE_APPEND);
+
+// Show all errors for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once '../../config.php';
 require_once '../../core/paymongo.php';
 
-if (!isLoggedIn()) { header('Location: ../../views/auth/login.php'); exit(); }
-if ($_SESSION['role_name'] !== 'Customer') { header('Location: ../../index.php'); exit(); }
+if (!isLoggedIn()) { 
+    file_put_contents('payment_access.log', date('Y-m-d H:i:s') . " - Not logged in, redirecting\n", FILE_APPEND);
+    header('Location: ../../views/auth/login.php'); 
+    exit(); 
+}
+if ($_SESSION['role_name'] !== 'Customer') { 
+    file_put_contents('payment_access.log', date('Y-m-d H:i:s') . " - Not customer, redirecting\n", FILE_APPEND);
+    header('Location: ../../index.php'); 
+    exit(); 
+}
 
 $full_name = $_SESSION['full_name'];
 $error = '';
@@ -23,89 +38,120 @@ $conn->query("CREATE TABLE IF NOT EXISTS payments (
 )");
 
 $rx_id = $_GET['rx_id'] ?? '';
-if (!$rx_id) { header('Location: dashboard.php'); exit(); }
+if (!$rx_id) { 
+    file_put_contents('payment_access.log', date('Y-m-d H:i:s') . " - No rx_id, redirecting to dashboard\n", FILE_APPEND);
+    header('Location: dashboard.php'); 
+    exit(); 
+}
 
 // Check if rx_id is numeric (database id) or string (prescription_id)
 if (is_numeric($rx_id)) {
     // It's a database ID
-    $s = $conn->prepare("SELECT p.* FROM prescriptions p WHERE p.id=? AND p.customer_id=?");
+    $s = $conn->prepare("SELECT p.* FROM prescriptions p WHERE p.id=? AND p.patient_id=?");
     $s->bind_param('ii', $rx_id, $_SESSION['user_id']);
 } else {
     // It's a prescription_id string (like RX-20260415-2305)
-    $s = $conn->prepare("SELECT p.* FROM prescriptions p WHERE p.prescription_id=? AND p.customer_id=? LIMIT 1");
+    $s = $conn->prepare("SELECT p.* FROM prescriptions p WHERE p.prescription_id=? AND p.patient_id=? LIMIT 1");
     $s->bind_param('si', $rx_id, $_SESSION['user_id']);
 }
 $s->execute();
 $rx = $s->get_result()->fetch_assoc();
 
 if (!$rx) { 
+    file_put_contents('payment_access.log', date('Y-m-d H:i:s') . " - Prescription not found, redirecting to dashboard\n", FILE_APPEND);
     header('Location: dashboard.php'); 
     exit(); 
 }
+
+file_put_contents('payment_access.log', date('Y-m-d H:i:s') . " - Prescription found. Status: " . $rx['status'] . "\n", FILE_APPEND);
 
 // Get the numeric ID for later use
 $rx_numeric_id = (int)$rx['id'];
 
 // Check if prescription is ready for payment
-if ($rx['status'] !== 'Ready') { 
-    // Redirect to track dispensing with a message
-    header('Location: track_dispensing.php?error=not_ready'); 
+if ($rx['status'] !== 'Ready') {
+    file_put_contents('payment_access.log', date('Y-m-d H:i:s') . " - Status not Ready: " . $rx['status'] . "\n", FILE_APPEND);
+    // If already completed, redirect to dashboard
+    if ($rx['status'] === 'Completed') {
+        header('Location: dashboard.php?msg=already_paid');
+        exit();
+    }
+    // Otherwise redirect to track dispensing with a message
+    header('Location: track_dispensing.php?error=not_ready&status=' . urlencode($rx['status'])); 
     exit(); 
 }
 
-$so = $conn->prepare("SELECT * FROM purchase_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
-$so->bind_param('i', $rx_numeric_id);
-$so->execute();
-$order = $so->get_result()->fetch_assoc();
-
-// If no purchase_orders, try prescription_orders
-if (!$order) {
-    $so = $conn->prepare("SELECT * FROM prescription_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
+// Get order from prescription_orders table
+$order = null;
+$so = $conn->prepare("SELECT * FROM prescription_orders WHERE prescription_id=? ORDER BY id DESC LIMIT 1");
+if ($so) {
     $so->bind_param('i', $rx_numeric_id);
     $so->execute();
     $order = $so->get_result()->fetch_assoc();
 }
 
-$si = $conn->prepare("SELECT * FROM purchase_order_items WHERE order_id=?");
-$order_id_val = (int)($order['id'] ?? 0);
-$si->bind_param('i', $order_id_val);
-$si->execute();
-$order_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
+// Get order items
+$order_items = [];
+$order_id_val = (int)($order['id'] ?? -1);
 
-// If no purchase_order_items, try prescription_order_items
-if (empty($order_items) && $order_id_val > 0) {
+if ($order_id_val >= 0) {  // Allow order_id = 0
     $si = $conn->prepare("SELECT * FROM prescription_order_items WHERE order_id=?");
-    $si->bind_param('i', $order_id_val);
-    $si->execute();
-    $order_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
+    if ($si) {
+        $si->bind_param('i', $order_id_val);
+        $si->execute();
+        $order_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
 }
 
-$amount_due = (float)($order['total_amount'] ?? 0);
+// If no order or items found, show error
+if (!$order || empty($order_items)) {
+    $error = 'Order details not found. The prescription may not have been processed yet. Please contact the pharmacy.';
+    // Don't allow payment if no order data
+    $amount_due = 0;
+} else {
+    $amount_due = (float)($order['total_amount'] ?? 0);
+}
 
 // Create PayMongo checkout session
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pay_paymongo'])) {
-    $line_items = [];
-    foreach ($order_items as $item) {
-        $line_items[] = [
-            'currency' => 'PHP',
-            'amount'   => (int)round((float)$item['unit_price'] * 100),
-            'name'     => $item['medicine_name'] . ($item['generic_name'] ? ' (' . $item['generic_name'] . ')' : ''),
-            'quantity' => (int)$item['quantity'],
-        ];
-    }
-
-    $description = 'Prescription #' . $rx_numeric_id . ' - ' . $rx['patient_name'];
-    $result = createCheckoutSession($amount_due, $description, $rx_numeric_id, $line_items);
-
-    if ($result['success']) {
-        $stmt = $conn->prepare("INSERT INTO payments (prescription_id, order_id, customer_id, amount_due, payment_method, paymongo_session_id, status) VALUES (?,?,?,?,'paymongo',?,'Pending')");
-        $stmt->bind_param('iiids', $rx_numeric_id, $order['id'], $_SESSION['user_id'], $amount_due, $result['session_id']);
-        $stmt->execute();
-
-        header('Location: ' . $result['checkout_url']);
-        exit();
+    // DEBUG: Log that we're in POST handler
+    file_put_contents('payment_debug.log', date('Y-m-d H:i:s') . " - POST received\n", FILE_APPEND);
+    
+    // Check if we have order items
+    if (empty($order_items)) {
+        $error = 'Cannot process payment: No order items found.';
+        file_put_contents('payment_debug.log', date('Y-m-d H:i:s') . " - No order items\n", FILE_APPEND);
     } else {
-        $error = 'PayMongo error: ' . $result['error'];
+        file_put_contents('payment_debug.log', date('Y-m-d H:i:s') . " - Order items found: " . count($order_items) . "\n", FILE_APPEND);
+        
+        $line_items = [];
+        foreach ($order_items as $item) {
+            $line_items[] = [
+                'currency' => 'PHP',
+                'amount'   => (int)round((float)$item['unit_price'] * 100),
+                'name'     => $item['medicine_name'] . ($item['generic_name'] ? ' (' . $item['generic_name'] . ')' : ''),
+                'quantity' => (int)$item['quantity'],
+            ];
+        }
+
+        $description = 'Prescription #' . $rx_numeric_id . ' - ' . $rx['patient_name'];
+        $result = createCheckoutSession($amount_due, $description, $rx_numeric_id, $line_items);
+        
+        file_put_contents('payment_debug.log', date('Y-m-d H:i:s') . " - createCheckoutSession result: " . json_encode($result) . "\n", FILE_APPEND);
+
+        if ($result['success']) {
+            $stmt = $conn->prepare("INSERT INTO payments (prescription_id, order_id, customer_id, amount_due, payment_method, paymongo_session_id, status) VALUES (?,?,?,?,'paymongo',?,'Pending')");
+            $stmt->bind_param('iiids', $rx_numeric_id, $order['id'], $_SESSION['user_id'], $amount_due, $result['session_id']);
+            $stmt->execute();
+
+            file_put_contents('payment_debug.log', date('Y-m-d H:i:s') . " - Redirecting to: " . $result['checkout_url'] . "\n", FILE_APPEND);
+            
+            header('Location: ' . $result['checkout_url']);
+            exit();
+        } else {
+            $error = 'PayMongo error: ' . $result['error'];
+            file_put_contents('payment_debug.log', date('Y-m-d H:i:s') . " - Error: " . $result['error'] . "\n", FILE_APPEND);
+        }
     }
 }
 
@@ -152,6 +198,12 @@ $cancelled = isset($_GET['cancelled']);
         <span></span>
     </div>
 
+    <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+        <div class="alert alert-warning mt-2">
+            <strong>DEBUG:</strong> POST request received! pay_paymongo = <?= isset($_POST['pay_paymongo']) ? 'YES' : 'NO' ?>
+        </div>
+    <?php endif; ?>
+    
     <?php if ($error): ?>
         <div class="alert alert-danger mt-2"><i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
@@ -247,7 +299,7 @@ $cancelled = isset($_GET['cancelled']);
                         <i class="bi bi-phone"></i> GCash
                     </span>
                 </div>
-                <form method="POST">
+                <form method="POST" action="" onsubmit="console.log('Form submitting...'); return true;">
                     <button type="submit" name="pay_paymongo" value="1" class="pay-btn">
                         <i class="bi bi-lock-fill me-2"></i> Pay Securely via PayMongo
                     </button>

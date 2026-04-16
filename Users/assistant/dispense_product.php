@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) 
 
         // Create an entry in the orders table (required for product_logs foreign key)
         $order_id_str = 'ORD-' . date('Ymd') . '-' . str_pad($rx_id, 4, '0', STR_PAD_LEFT);
-        $customer_id = $rx['customer_id'] ?? 0;
+        $customer_id = $rx['patient_id'] ?? 0;
         $customer_name = $rx['patient_name'] ?? '';
         $total_amount = $order['total_amount'] ?? 0;
         $pharmacist_id = $_SESSION['user_id'];
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) 
         $insert_order->execute();
         $orders_table_id = $insert_order->insert_id;
 
-        $stmt = $conn->prepare("INSERT INTO product_logs (prescription_id, order_id, medicine_name, dosage, quantity_dispensed, quantity, unit_price, total_price, pharmacist_id, patient_id, patient_name, doctor_name, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        $stmt = $conn->prepare("INSERT INTO product_logs (prescription_id, order_id, medicine_name, dosage, quantity_dispensed, unit_price, total_price, pharmacist_id, patient_id, patient_name, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
         if ($stmt === false) {
             $error = 'Database error preparing product_logs insert: ' . $conn->error;
         } else {
@@ -96,22 +96,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) 
                 $amount = $item['amount'] ?? 0;
                 $patient_id = $rx['patient_id'] ?? 0;
                 $patient_name = $rx['patient_name'] ?? '';
-                $doctor_name = $rx['doctor_name'] ?? '';
                 $notes = 'Sig: ' . ($item['sig'] ?? '');
                 
-                $stmt->bind_param('iissiiddiisss',
+                $stmt->bind_param('iissiddisss',
                     $rx_id, 
                     $orders_table_id,
                     $medicine_name, 
-                    $generic_name,
-                    $quantity,
-                    $quantity,  // Both quantity_dispensed and quantity
+                    $generic_name,  // This goes to dosage column
+                    $quantity,      // This goes to quantity_dispensed
                     $unit_price, 
                     $amount,
                     $pharmacist_id,
                     $patient_id,
                     $patient_name,
-                    $doctor_name,
                     $notes
                 );
                 $stmt->execute();
@@ -122,7 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) 
         $upd = $conn->prepare("UPDATE prescriptions SET status='Ready' WHERE id=?");
         $upd->bind_param('i', $rx_id); $upd->execute();
 
-        $success = 'Prescription #' . $rx_id . ' dispensed successfully to ' . htmlspecialchars($rx['patient_name']) . '. Awaiting customer payment.';
+        // Mark the customer's receipt as Processed (so it won't show again)
+        $upd_receipt = $conn->prepare("UPDATE prescription_receipts SET status='Processed' WHERE customer_id=? AND status='Pending'");
+        $customer_id_for_receipt = $rx['patient_id'] ?? 0;
+        $upd_receipt->bind_param('i', $customer_id_for_receipt);
+        $upd_receipt->execute();
+
+        $success = 'Prescription #' . $rx_id . ' dispensed successfully. Customer can now proceed to payment.';
     } else {
         $error = 'Order not found for this prescription.';
     }
@@ -130,20 +133,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_dispense'])) 
 }
 
 // Load prescriptions that are Processing only (not yet dispensed by assistant)
-$res = $conn->query("SELECT p.*, CONCAT(u.first_name,' ',u.last_name) AS customer_name, o.total_amount
+$res = $conn->query("SELECT p.*, CONCAT(u.first_name,' ',u.last_name) AS customer_name, o.total_amount,
+    (SELECT COUNT(*) FROM prescription_receipts pr WHERE pr.customer_id = p.patient_id AND pr.status = 'Pending') as has_receipt
     FROM prescriptions p
-    LEFT JOIN users u ON p.customer_id = u.id
+    LEFT JOIN users u ON p.patient_id = u.id
     LEFT JOIN prescription_orders o ON o.prescription_id = p.id
     WHERE p.status = 'Processing'
     ORDER BY p.created_at DESC");
 $ready_prescriptions = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 
 // View single for dispensing
-$view_rx = null; $view_items = []; $view_order = null;
+$view_rx = null; $view_items = []; $view_order = null; $view_receipt = null;
 if (isset($_GET['rx_id'])) {
     $vid = (int)$_GET['rx_id'];
     $sv = $conn->prepare("SELECT p.*, CONCAT(u.first_name,' ',u.last_name) AS customer_name
-        FROM prescriptions p LEFT JOIN users u ON p.customer_id = u.id WHERE p.id=?");
+        FROM prescriptions p LEFT JOIN users u ON p.patient_id = u.id WHERE p.id=?");
     if ($sv === false) {
         die("Error preparing prescription query: " . $conn->error);
     }
@@ -164,6 +168,17 @@ if (isset($_GET['rx_id'])) {
         }
         $si->bind_param('i', $view_order['id']); $si->execute();
         $view_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    // Get the customer's uploaded receipt (only Pending status)
+    if ($view_rx) {
+        $customer_id = $view_rx['patient_id'];
+        $sr = $conn->prepare("SELECT * FROM prescription_receipts WHERE customer_id=? AND status='Pending' ORDER BY uploaded_at DESC LIMIT 1");
+        if ($sr) {
+            $sr->bind_param('i', $customer_id);
+            $sr->execute();
+            $view_receipt = $sr->get_result()->fetch_assoc();
+        }
     }
 }
 
@@ -288,6 +303,56 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
 
         <p class="validity-note">This prescription is valid for THREE (3) MONTHS from the date of issue.</p>
 
+        <?php if ($view_receipt): ?>
+        <!-- Customer's Uploaded Receipt -->
+        <div class="card mt-3 border-info">
+            <div class="card-header bg-info text-white fw-semibold">
+                <i class="bi bi-file-earmark-image"></i> Customer's Uploaded Prescription
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <p><strong>Uploaded:</strong> <?= date('M j, Y g:i A', strtotime($view_receipt['uploaded_at'])) ?></p>
+                        <p><strong>File:</strong> <?= htmlspecialchars($view_receipt['original_filename']) ?></p>
+                        <?php if (!empty($view_receipt['notes'])): ?>
+                        <p><strong>Notes:</strong> <?= htmlspecialchars($view_receipt['notes']) ?></p>
+                        <?php endif; ?>
+                        
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#viewReceiptModal">
+                                <i class="bi bi-receipt"></i> View Prescription 
+                            </button>
+                        </div>
+                        
+                        <?php 
+                        $file_path = '../../' . $view_receipt['file_path'];
+                        $mime_type = $view_receipt['mime_type'];
+                        ?>
+                        
+                        <?php if (strpos($mime_type, 'image') !== false): ?>
+                        <!-- Image Preview -->
+                        <div class="mt-3">
+                            <img src="<?= htmlspecialchars($file_path) ?>" 
+                                 alt="Receipt" 
+                                 class="img-fluid border rounded" 
+                                 style="max-height: 400px; cursor: pointer;"
+                                 onclick="window.open('<?= htmlspecialchars($file_path) ?>', '_blank')">
+                            <p class="text-muted small mt-2">Click image to view full size</p>
+                        </div>
+                        <?php elseif (strpos($mime_type, 'pdf') !== false): ?>
+                        <!-- PDF Preview -->
+                        <div class="mt-3">
+                            <a href="<?= htmlspecialchars($file_path) ?>" target="_blank" class="btn btn-primary">
+                                <i class="bi bi-file-pdf"></i> View PDF Receipt
+                            </a>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <div class="card mt-3 border-success">
             <div class="card-header bg-success text-white fw-semibold">
                 <i class="bi bi-bag-check"></i> Confirm Dispensing
@@ -328,6 +393,7 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
                         <th>Customer</th>
                         <th>Rx Date</th>
                         <th>Total</th>
+                        <th>Receipt</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -340,6 +406,13 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
                         <td><?= htmlspecialchars($rx['customer_name'] ?? '-') ?></td>
                         <td><?= htmlspecialchars($rx['prescription_date'] ?? '') ?></td>
                         <td>₱<?= number_format($rx['total_amount'] ?? 0, 2) ?></td>
+                        <td>
+                            <?php if (($rx['has_receipt'] ?? 0) > 0): ?>
+                                <span class="badge bg-success"><i class="bi bi-file-earmark-check"></i> Uploaded</span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">No receipt</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <a href="?rx_id=<?= $rx['id'] ?? 0 ?>" class="btn btn-sm btn-success">
                                 <i class="bi bi-bag-check"></i> Dispense
@@ -391,6 +464,71 @@ $recent_logs = $logs_res ? $logs_res->fetch_all(MYSQLI_ASSOC) : [];
     </div>
     <?php endif; ?>
 </div>
+
+<!-- View Receipt Modal -->
+<?php if ($view_receipt): ?>
+<div class="modal fade" id="viewReceiptModal" tabindex="-1" aria-labelledby="viewReceiptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="viewReceiptModalLabel">
+                    <i class="bi bi-file-earmark-image"></i> Customer's Uploaded Receipt
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <p><strong>Uploaded:</strong> <?= date('M j, Y g:i A', strtotime($view_receipt['uploaded_at'])) ?></p>
+                    <p><strong>File:</strong> <?= htmlspecialchars($view_receipt['original_filename']) ?></p>
+                    <?php if (!empty($view_receipt['notes'])): ?>
+                    <p><strong>Notes:</strong> <?= htmlspecialchars($view_receipt['notes']) ?></p>
+                    <?php endif; ?>
+                </div>
+                
+                <?php 
+                // Convert file path to web-accessible URL
+                // Database stores: ../../uploads/prescriptions/receipt_xxx.jpg
+                // Convert to: BASE_URL/uploads/prescriptions/receipt_xxx.jpg
+                $relative_path = str_replace('../../', '', $view_receipt['file_path']);
+                $file_path = BASE_URL . $relative_path;
+                $mime_type = $view_receipt['mime_type'];
+                ?>
+                
+                <?php if (strpos($mime_type, 'image') !== false): ?>
+                <!-- Image Preview -->
+                <div class="text-center">
+                    <img src="<?= htmlspecialchars($file_path) ?>" 
+                         alt="Receipt" 
+                         class="img-fluid border rounded" 
+                         style="max-height: 500px; cursor: pointer;"
+                         onclick="window.open('<?= htmlspecialchars($file_path) ?>', '_blank')">
+                    <p class="text-muted small mt-2">
+                        <i class="bi bi-info-circle"></i> Click image to view full size in new tab
+                    </p>
+                </div>
+                <?php elseif (strpos($mime_type, 'pdf') !== false): ?>
+                <!-- PDF Preview -->
+                <div class="text-center">
+                    <div class="alert alert-info">
+                        <i class="bi bi-file-pdf"></i> PDF Document
+                    </div>
+                    <a href="<?= htmlspecialchars($file_path) ?>" target="_blank" class="btn btn-primary">
+                        <i class="bi bi-file-pdf"></i> Open PDF Receipt
+                    </a>
+                </div>
+                <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="<?= htmlspecialchars($file_path) ?>" target="_blank" class="btn btn-primary">
+                    <i class="bi bi-download"></i> Open in New Tab
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

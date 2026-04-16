@@ -23,16 +23,26 @@ $email = $_SESSION['email'];
 $stmt = $conn->prepare(
     "SELECT p.id, p.prescription_id, p.date_prescribed, p.patient_name, p.doctor_name, p.status
      FROM prescriptions p
-     WHERE p.customer_id = ?
+     WHERE p.patient_id = ?
      GROUP BY p.prescription_id
      ORDER BY p.created_at DESC LIMIT 5"
 );
+
+if (!$stmt) {
+    die("Error preparing statement: " . $conn->error);
+}
+
 $stmt->bind_param('i', $user_id);
 $stmt->execute();
 $recent_orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Count ready for payment
-$sp = $conn->prepare("SELECT COUNT(*) as cnt FROM prescriptions WHERE customer_id=? AND status='Ready'");
+// Count ready for payment (prescriptions that have been dispensed and awaiting payment)
+$sp = $conn->prepare("SELECT COUNT(*) as cnt FROM prescriptions WHERE patient_id=? AND status='Ready'");
+
+if (!$sp) {
+    die("Error preparing statement: " . $conn->error);
+}
+
 $sp->bind_param('i', $user_id);
 $sp->execute();
 $ready_count = $sp->get_result()->fetch_assoc()['cnt'];
@@ -143,6 +153,13 @@ $ready_count = $sp->get_result()->fetch_assoc()['cnt'];
 
     <div class="dashboard-container">
         <div class="container">
+            <?php if (isset($_GET['msg']) && $_GET['msg'] === 'already_paid'): ?>
+                <div class="alert alert-info alert-dismissible fade show mt-3" role="alert">
+                    <i class="bi bi-info-circle"></i> This prescription has already been paid and completed.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            
             <div class="welcome-header">
                 <h1><i class="bi bi-person"></i> Customer Dashboard</h1>
                 <p class="mb-0">Welcome back, <?php echo htmlspecialchars($full_name); ?>! Manage your prescriptions and orders.</p>
@@ -231,7 +248,8 @@ $ready_count = $sp->get_result()->fetch_assoc()['cnt'];
                                     'Pending'    => 'warning text-dark',
                                     'Processing' => 'info text-dark',
                                     'Ready'      => 'success',
-                                    'Dispensed'  => 'secondary',
+                                    'Completed'  => 'secondary',
+                                    'Cancelled'  => 'danger',
                                     default      => 'secondary'
                                 };
                             ?>
@@ -244,11 +262,19 @@ $ready_count = $sp->get_result()->fetch_assoc()['cnt'];
                                 <td><span class="badge bg-<?= $badge ?>"><?= $ord['status'] ?></span></td>
                                 <td>
                                     <?php if ($ord['status'] === 'Ready'): ?>
-                                        <a href="payment.php?rx_id=<?= $ord['prescription_id'] ?>" class="btn btn-sm btn-success">Pay</a>
-                                    <?php elseif ($ord['status'] === 'Processing'): ?>
-                                        <a href="purchase_order_view.php" class="btn btn-sm btn-info">View Details</a>
+                                        <a href="payment.php?rx_id=<?= $ord['prescription_id'] ?>" class="btn btn-sm btn-success">
+                                            <i class="bi bi-cash"></i> Pay Now
+                                        </a>
+                                    <?php elseif ($ord['status'] === 'Completed'): ?>
+                                        <span class="text-success"><i class="bi bi-check-circle-fill"></i> Completed</span>
+                                    <?php elseif ($ord['status'] === 'Pending'): ?>
+                                        <a href="purchase_order_view.php" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> View Details
+                                        </a>
                                     <?php else: ?>
-                                        <a href="my_prescriptions.php" class="btn btn-sm btn-info">View</a>
+                                        <a href="track_dispensing.php" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> Track Status
+                                        </a>
                                     <?php endif; ?>
                                 </td>
                             </tr>

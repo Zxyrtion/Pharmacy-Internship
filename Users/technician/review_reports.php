@@ -61,8 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // Fetch all reports grouped
 $reports = [];
+$query_error = '';
 if (isset($conn)) {
-    $sql = "SELECT inventory_period, reporter, status, remarks, MAX(created_at) as submitted_at, SUM(inventory_value) as total_value, COUNT(id) as item_count FROM inventory_report GROUP BY inventory_period, reporter, status, remarks ORDER BY submitted_at DESC";
+    $sql = "SELECT inventory_period, reporter, status, MAX(remarks) as remarks, MAX(created_at) as submitted_at, SUM(inventory_value) as total_value, COUNT(id) as item_count FROM inventory_report GROUP BY inventory_period, reporter, status ORDER BY submitted_at DESC";
     $res = $conn->query($sql);
     if ($res) {
         while ($row = $res->fetch_assoc()) {
@@ -95,6 +96,8 @@ if (isset($conn)) {
             
             $reports[] = $row;
         }
+    } else {
+        $query_error = $conn->error;
     }
 }
 ?>
@@ -135,6 +138,18 @@ if (isset($conn)) {
             <h2><i class="bi bi-clipboard-data"></i> Review Inventory Reports</h2>
             <p class="mb-0">Approve intern submissions and request stocks</p>
         </div>
+
+        <?php if (!empty($query_error)): ?>
+            <div class="alert alert-danger">
+                <strong>Database Error:</strong> <?= htmlspecialchars($query_error) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($reports)): ?>
+            <div class="alert alert-info">
+                Found <?= count($reports) ?> report(s)
+            </div>
+        <?php endif; ?>
 
         <div class="card p-4">
             <table class="table table-hover align-middle">
@@ -181,17 +196,51 @@ if (isset($conn)) {
                                     <i class="bi bi-eye"></i> View
                                 </a>
                                 <?php if($r['status'] === 'Pending'): ?>
-                                    <form method="POST" class="d-inline">
-                                        <input type="hidden" name="action" value="update_status">
-                                        <input type="hidden" name="inventory_period" value="<?= htmlspecialchars($r['inventory_period']) ?>">
-                                        <input type="hidden" name="reporter" value="<?= htmlspecialchars($r['reporter']) ?>">
-                                        
-                                        <input type="hidden" name="status" value="Approved">
-                                        <button type="submit" class="btn btn-sm btn-success me-1" title="Quick Approve"><i class="bi bi-check-circle"></i> Approve</button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#approveModal<?= $safe_modal_id ?>" title="Approve Report">
+                                        <i class="bi bi-check-circle"></i> Approve
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal<?= $safe_modal_id ?>" title="Reject with Remarks">
                                         <i class="bi bi-x-circle"></i> Reject
                                     </button>
+                                    
+                                    <!-- Approval Modal -->
+                                    <div class="modal fade" id="approveModal<?= $safe_modal_id ?>" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-success text-white">
+                                                    <h5 class="modal-title"><i class="bi bi-check-circle"></i> Approve Inventory Report</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="POST">
+                                                    <div class="modal-body">
+                                                        <input type="hidden" name="action" value="update_status">
+                                                        <input type="hidden" name="inventory_period" value="<?= htmlspecialchars($r['inventory_period']) ?>">
+                                                        <input type="hidden" name="reporter" value="<?= htmlspecialchars($r['reporter']) ?>">
+                                                        <input type="hidden" name="status" value="Approved">
+                                                        
+                                                        <div class="alert alert-success">
+                                                            <i class="bi bi-info-circle"></i> You are about to approve this inventory report.
+                                                        </div>
+                                                        
+                                                        <div class="mb-3">
+                                                            <strong>Inventory Period:</strong> <?= htmlspecialchars($r['inventory_period']) ?><br>
+                                                            <strong>Reporter:</strong> <?= htmlspecialchars($r['reporter']) ?><br>
+                                                            <strong>Items Count:</strong> <?= htmlspecialchars($r['item_count']) ?><br>
+                                                            <strong>Total Value:</strong> ₱<?= number_format($r['total_value'], 2) ?>
+                                                        </div>
+                                                        
+                                                        <p class="text-muted mb-0">
+                                                            <i class="bi bi-bell"></i> The intern will be notified that their report has been approved.
+                                                        </p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Confirm Approval</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                     
                                     <!-- Rejection Modal -->
                                     <div class="modal fade" id="rejectModal<?= $safe_modal_id ?>" tabindex="-1" aria-hidden="true">
@@ -224,7 +273,16 @@ if (isset($conn)) {
                                     </div>
                                 <?php elseif($r['status'] === 'Approved'): ?>
                                     <span class="badge bg-success"><i class="bi bi-check-circle"></i> Approved</span>
-                                    <small class="text-muted d-block mt-1">Pharmacist will generate PO</small>
+                                    <div class="btn-group mt-2" role="group">
+                                        </a>
+                                        <form method="POST" action="create_requisition.php" style="display: inline;">
+                                            <input type="hidden" name="period" value="<?= htmlspecialchars($r['inventory_period']) ?>">
+                                            <input type="hidden" name="reporter" value="<?= htmlspecialchars($r['reporter']) ?>">
+                                            <button type="submit" class="btn btn-sm btn-success" title="Create Requisition">
+                                                <i class="bi bi-cart-plus"></i> Create Requisition
+                                            </button>
+                                        </form>
+                                    </div>
                                 <?php endif; ?>
                             </td>
                         </tr>

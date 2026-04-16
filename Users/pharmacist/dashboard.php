@@ -35,6 +35,10 @@ $approved_requisitions = $purchaseOrder->getApprovedRequisitions();
 
 // Get purchase order statistics
 $po_stats = $purchaseOrder->getPurchaseOrderStats();
+
+// Get pending requisitions count for notification badge
+$pending_requisitions_result = $conn->query("SELECT COUNT(*) as count FROM requisitions WHERE status = 'Submitted'");
+$pending_requisitions_count = $pending_requisitions_result ? $pending_requisitions_result->fetch_assoc()['count'] : 0;
 ?>
 
 <!DOCTYPE html>
@@ -81,6 +85,7 @@ $po_stats = $purchaseOrder->getPurchaseOrderStats();
             text-align: center;
             transition: all 0.3s ease;
             height: 100%;
+            position: relative;
         }
         
         .feature-card:hover {
@@ -170,6 +175,11 @@ $po_stats = $purchaseOrder->getPurchaseOrderStats();
                     <div class="feature-card">
                         <i class="bi bi-clipboard-check feature-icon"></i>
                         <h4>Manage Requisitions</h4>
+                        <?php if ($pending_requisitions_count > 0): ?>
+                            <span class="badge bg-danger position-absolute top-0 end-0 m-3" style="font-size: 1rem;">
+                                <?php echo $pending_requisitions_count; ?> New
+                            </span>
+                        <?php endif; ?>
                         <p>Review and approve stock requests</p>
                         <a href="manage_requisitions.php" class="btn btn-primary">Review</a>
                     </div>

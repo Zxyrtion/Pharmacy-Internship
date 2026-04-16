@@ -83,14 +83,20 @@ if (!in_array($filter, ['Pending','Processing','Ready','Dispensed','All'])) $fil
 
 if ($filter === 'All') {
     $res = $conn->query("SELECT p.*, CONCAT(u.first_name,' ',u.last_name) AS customer_name
-        FROM prescriptions p LEFT JOIN users u ON p.customer_id = u.id
+        FROM prescriptions p LEFT JOIN users u ON p.patient_id = u.id
         ORDER BY p.created_at DESC");
 } else {
     $s = $conn->prepare("SELECT p.*, CONCAT(u.first_name,' ',u.last_name) AS customer_name
-        FROM prescriptions p LEFT JOIN users u ON p.customer_id = u.id
+        FROM prescriptions p LEFT JOIN users u ON p.patient_id = u.id
         WHERE p.status=? ORDER BY p.created_at DESC");
-    $s->bind_param('s', $filter); $s->execute();
-    $res = $s->get_result();
+    if ($s) {
+        $s->bind_param('s', $filter); 
+        $s->execute();
+        $res = $s->get_result();
+    } else {
+        $error = 'Database error: ' . $conn->error;
+        $res = null;
+    }
 }
 $prescriptions = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 
@@ -99,9 +105,15 @@ $view_rx = null; $view_items = []; $view_order = null; $view_order_items = [];
 if (isset($_GET['view'])) {
     $vid = (int)$_GET['view'];
     $sv = $conn->prepare("SELECT p.*, CONCAT(u.first_name,' ',u.last_name) AS customer_name
-        FROM prescriptions p LEFT JOIN users u ON p.customer_id = u.id WHERE p.id=?");
-    $sv->bind_param('i', $vid); $sv->execute();
-    $view_rx = $sv->get_result()->fetch_assoc();
+        FROM prescriptions p LEFT JOIN users u ON p.patient_id = u.id WHERE p.id=?");
+    if ($sv) {
+        $sv->bind_param('i', $vid); 
+        $sv->execute();
+        $view_rx = $sv->get_result()->fetch_assoc();
+    } else {
+        $error = 'Database error: ' . $conn->error;
+        $view_rx = null;
+    }
 
     // Get all medicine items for this prescription_id
     $si = $conn->prepare("SELECT * FROM prescriptions WHERE prescription_id=?");
@@ -110,6 +122,7 @@ if (isset($_GET['view'])) {
         $si->execute();
         $view_items = $si->get_result()->fetch_all(MYSQLI_ASSOC);
     } else {
+        $error = 'Database error: ' . $conn->error;
         $view_items = [];
     }
 
@@ -119,6 +132,7 @@ if (isset($_GET['view'])) {
         $so->execute();
         $view_order = $so->get_result()->fetch_assoc();
     } else {
+        $error = 'Database error: ' . $conn->error;
         $view_order = null;
     }
 
@@ -129,6 +143,7 @@ if (isset($_GET['view'])) {
             $soi->execute();
             $view_order_items = $soi->get_result()->fetch_all(MYSQLI_ASSOC);
         } else {
+            $error = 'Database error: ' . $conn->error;
             $view_order_items = [];
         }
     }

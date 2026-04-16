@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Database error: could not prepare statement.';
         } else {
             $file_path = $attachment['stored_name'];
-            $hr_user_id = $user_id; // Current HR user ID
+            // $hr_user_id is already defined at the top (line 15)
             $stmt->bind_param(
                 "isssssi",
                 $employee_id,

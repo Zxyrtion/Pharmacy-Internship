@@ -176,16 +176,19 @@ if (isset($conn) && $status === 'Approved') {
             </form>
         </div>
         <?php elseif ($status === 'Approved'): ?>
-        <div class="d-flex justify-content-end mb-5">
+        <div class="d-flex justify-content-end mb-5 gap-3">
             <?php if ($existing_po): ?>
                 <a href="edit_po.php?id=<?= $existing_po['id'] ?>" class="btn btn-warning btn-lg px-4">
                     <i class="bi bi-pencil-square"></i> Edit PO #<?= htmlspecialchars($existing_po['po_number']) ?>
                 </a>
-            <?php else: ?>
-                <a href="create_po.php?period=<?= urlencode($period) ?>&reporter=<?= urlencode($reporter) ?>" class="btn btn-primary btn-lg px-4">
-                    <i class="bi bi-file-earmark-text"></i> Proceed to Create PO
-                </a>
             <?php endif; ?>
+            <form method="POST" action="create_requisition.php" style="display: inline;">
+                <input type="hidden" name="period" value="<?= htmlspecialchars($period) ?>">
+                <input type="hidden" name="reporter" value="<?= htmlspecialchars($reporter) ?>">
+                <button type="submit" class="btn btn-success btn-lg px-4">
+                    <i class="bi bi-cart-plus"></i> Create Requisition
+                </button>
+            </form>
         </div>
         <?php endif; ?>
     </div>

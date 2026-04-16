@@ -19,6 +19,19 @@ $full_name = $_SESSION['full_name'];
 
 $success = '';
 $error = '';
+$show_success_modal = false;
+$report_items_count = 0;
+$report_period = '';
+
+// Check if report was just submitted
+if (isset($_SESSION['report_submitted']) && $_SESSION['report_submitted'] === true) {
+    $show_success_modal = true;
+    $report_items_count = $_SESSION['report_items_count'] ?? 0;
+    $report_period = $_SESSION['report_period'] ?? '';
+    unset($_SESSION['report_submitted']);
+    unset($_SESSION['report_items_count']);
+    unset($_SESSION['report_period']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $inventory_quarter = sanitizeInput($_POST['inventory_quarter']);
@@ -78,18 +91,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->commit();
             if ($inserted > 0) {
                 // Send notification to all technicians
-                $technician_stmt = $conn->prepare("SELECT id FROM users WHERE role_name = 'Pharmacy Technician'");
+                $technician_stmt = $conn->prepare("SELECT u.id FROM users u INNER JOIN roles r ON u.role_id = r.id WHERE r.role_name = 'Pharmacy Technician'");
                 if ($technician_stmt) {
                     $technician_stmt->execute();
                     $technician_result = $technician_stmt->get_result();
+                    $notif_count = 0;
                     while ($technician = $technician_result->fetch_assoc()) {
                         $message = "New inventory report for period $inventory_period has been submitted by $reporter and requires your review.";
-                        createNotification($technician['id'], $message, 'info', 'inventory_report', 0);
+                        $notif_result = createNotification($technician['id'], $message, 'info', 'inventory_report', 0);
+                        if ($notif_result) {
+                            $notif_count++;
+                        }
                     }
                     $technician_stmt->close();
                 }
                 
-                $success = "$inserted items submitted to Technician successfully.";
+                $_SESSION['report_submitted'] = true;
+                $_SESSION['report_items_count'] = $inserted;
+                $_SESSION['report_period'] = $inventory_period;
+                header("Location: inventory_report.php");
+                exit();
             } else {
                 $error = "No valid inventory items were submitted.";
             }
@@ -99,14 +120,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $stmt->close();
     } else {
-        $error = "Database error: Failed to prepare statement.";
+        $error = "Database error: Failed to prepare statement. " . $conn->error;
     }
 }
 
 // Fetch existing products to pre-fill report
 $existing_products = [];
 if (isset($conn)) {
-    $stmt = $conn->prepare("SELECT * FROM product_inventory WHERE intern_id = ? ORDER BY id ASC");
+    $stmt = $conn->prepare("SELECT * FROM intern_product_inventory WHERE intern_id = ? ORDER BY id ASC");
     if ($stmt) {
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
@@ -240,7 +261,8 @@ if (isset($conn)) {
                         </div>
                         <div class="meta-info">
                             <label for="reporter">Reporter:</label>
-                            <input type="text" class="form-control form-control-sm w-auto" id="reporter" name="reporter" value="<?php echo htmlspecialchars($full_name); ?>" required readonly>
+                            <input type="hidden" name="reporter" value="<?php echo htmlspecialchars($full_name); ?>">
+                            <input type="text" class="form-control form-control-sm w-auto" id="reporter_display" value="<?php echo htmlspecialchars($full_name); ?>" required readonly>
                         </div>
                     </div>
                 </div>
@@ -368,9 +390,52 @@ if (isset($conn)) {
         </div>
     </div>
 
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white border-0">
+                    <h5 class="modal-title">
+                        <i class="bi bi-check-circle-fill me-2"></i>Report Submitted Successfully!
+                    </h5>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="bi bi-send-check" style="font-size: 4rem; color: #28a745;"></i>
+                    </div>
+                    <h4 class="mb-3">Inventory Report Sent to Technician</h4>
+                    <div class="alert alert-info">
+                        <strong>Report Period:</strong> <?= htmlspecialchars($report_period) ?><br>
+                        <strong>Items Submitted:</strong> <?= $report_items_count ?> items<br>
+                        <strong>Reporter:</strong> <?= htmlspecialchars($full_name) ?>
+                    </div>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-info-circle"></i> The pharmacy technician has been notified and will review your report shortly.
+                    </p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">
+                        <i class="bi bi-check"></i> Got it!
+                    </button>
+                    <a href="dashboard.php" class="btn btn-outline-secondary">
+                        <i class="bi bi-house"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        <?php if ($show_success_modal): ?>
+        // Show success modal on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+        });
+        <?php endif; ?>
+        
         document.addEventListener('DOMContentLoaded', function() {
             const tableBody = document.querySelector('#reportTable tbody');
             const addRowBtn = document.getElementById('addRowBtn');
@@ -397,21 +462,20 @@ if (isset($conn)) {
                             reorderPointInput.value = '100';
                         }
                         
-                        // Calculate reorder quantity to reach minimum 100 units
+                        // ALWAYS calculate reorder quantity to reach minimum 100 units
                         const neededToReach100 = Math.max(0, 100 - stock);
-                        if (!reorderQtyInput.value || parseFloat(reorderQtyInput.value) === 0) {
-                            reorderQtyInput.value = neededToReach100;
-                        }
+                        reorderQtyInput.value = neededToReach100;
                     } else {
                         // Stock is sufficient - automatically set reorder to No
-                        if (!reorderSelect.value || reorderSelect.value === 'No') {
-                            reorderSelect.value = 'No';
-                        }
+                        reorderSelect.value = 'No';
                         
                         // Set reorder point to 100 if not already set
                         if (!reorderPointInput.value || parseFloat(reorderPointInput.value) === 0) {
                             reorderPointInput.value = '100';
                         }
+                        
+                        // Clear reorder quantity since stock is sufficient
+                        reorderQtyInput.value = '0';
                     }
                     
                     // Update all readonly input fields to show calculated values

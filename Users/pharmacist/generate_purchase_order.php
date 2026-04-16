@@ -17,6 +17,7 @@ if ($_SESSION['role_name'] !== 'Pharmacist') {
 $purchaseOrder = new PurchaseOrder($conn);
 $success_message = '';
 $error_message = '';
+$result = null; // Store result for modal
 
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['requisition_id'])) {
@@ -304,12 +305,59 @@ $email = $_SESSION['email'];
         </div>
     </div>
     
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="successModalLabel">
+                        <i class="bi bi-check-circle-fill"></i> Purchase Order Generated Successfully!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="success-icon mb-3">
+                        <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="mb-3">Purchase Order Created!</h4>
+                    <div class="alert alert-info">
+                        <p class="mb-2"><strong>PO ID:</strong> <span id="poId"></span></p>
+                        <p class="mb-0"><strong>Total Amount:</strong> <span id="poAmount"></span></p>
+                    </div>
+                    <p class="text-muted">Your purchase order has been successfully generated and is ready for processing.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <a href="view_purchase_orders.php" class="btn btn-primary">
+                        <i class="bi bi-eye"></i> View Purchase Orders
+                    </a>
+                    <a href="dashboard.php" class="btn btn-secondary">
+                        <i class="bi bi-house"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
         // Set minimum date to today for expected delivery
-        document.getElementById('expected_delivery_date').min = new Date().toISOString().split('T')[0];
+        const deliveryDateInput = document.getElementById('expected_delivery_date');
+        if (deliveryDateInput) {
+            deliveryDateInput.min = new Date().toISOString().split('T')[0];
+        }
+        
+        // Show success modal if purchase order was generated
+        <?php if ($success_message && isset($result['purchase_order_id'])): ?>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('poId').textContent = '<?php echo $result['purchase_order_id']; ?>';
+                document.getElementById('poAmount').textContent = '₱<?php echo number_format($result['total_amount'], 2); ?>';
+                
+                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                successModal.show();
+            });
+        <?php endif; ?>
     </script>
 </body>
 </html>

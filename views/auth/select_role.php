@@ -64,11 +64,8 @@ if ($roles_result) {
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <!-- Custom CSS -->
-<<<<<<< HEAD
     <link rel="stylesheet" href="/Pharmacy-Internship/style.css">
-=======
     <link rel="stylesheet" href="../../style.css">
->>>>>>> recovery-restore
     
     <style>
         .role-selection-container {

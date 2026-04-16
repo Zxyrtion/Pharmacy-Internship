@@ -41,29 +41,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Create notification if status is finished
                 if ($new_status === 'finished') {
-                    // Get HR user ID (hardcoded for now to test)
-                    $hr_user_id = 12; // Replace with actual HR user ID
-                    
-                    // Get task title
+                    // Get task details and HR user ID who assigned it
                     $task_title = 'Task'; // Default
-                    $task_stmt = $conn->prepare("SELECT title FROM `{$routine_table}` WHERE id = ?");
+                    $hr_user_id = null;
+                    
+                    $task_stmt = $conn->prepare("SELECT title, assigned_by_user_id FROM `{$routine_table}` WHERE id = ?");
                     if ($task_stmt) {
                         $task_stmt->bind_param("i", $task_id);
                         $task_stmt->execute();
                         $task_result = $task_stmt->get_result();
                         if ($task_row = $task_result->fetch_assoc()) {
                             $task_title = $task_row['title'];
+                            $hr_user_id = $task_row['assigned_by_user_id'];
                         }
                     }
                     
-                    // Insert notification directly
-                    $notif_sql = "INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at) 
-                                 VALUES (12, 'task_completed', 'Task Completed', ?, NULL, 0, NOW())";
-                    $notif_stmt = $conn->prepare($notif_sql);
-                    if ($notif_stmt) {
-                        $msg = $full_name . " has completed the task: " . $task_title;
-                        $notif_stmt->bind_param("s", $msg);
-                        $notif_stmt->execute();
+                    // If no specific HR assigned, notify all HR personnel
+                    if ($hr_user_id) {
+                        // Notify specific HR who assigned the task
+                        $notif_sql = "INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at) 
+                                     VALUES (?, 'task_completed', 'Task Completed', ?, ?, 0, NOW())";
+                        $notif_stmt = $conn->prepare($notif_sql);
+                        if ($notif_stmt) {
+                            $msg = $full_name . " has completed the task: " . $task_title;
+                            $notif_stmt->bind_param("isi", $hr_user_id, $msg, $task_id);
+                            $notif_stmt->execute();
+                        }
+                    } else {
+                        // Notify all HR personnel if no specific assignee
+                        $hr_role_sql = "SELECT DISTINCT u.id FROM users u 
+                                       WHERE u.role_id = (SELECT id FROM roles WHERE role_name = 'HR Personnel' LIMIT 1)";
+                        $hr_result = $conn->query($hr_role_sql);
+                        if ($hr_result) {
+                            $notif_sql = "INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at) 
+                                         VALUES (?, 'task_completed', 'Task Completed', ?, ?, 0, NOW())";
+                            $notif_stmt = $conn->prepare($notif_sql);
+                            if ($notif_stmt) {
+                                $msg = $full_name . " has completed the task: " . $task_title;
+                                while ($hr_row = $hr_result->fetch_assoc()) {
+                                    $notif_stmt->bind_param("isi", $hr_row['id'], $msg, $task_id);
+                                    $notif_stmt->execute();
+                                }
+                            }
+                        }
                     }
                 }
                 

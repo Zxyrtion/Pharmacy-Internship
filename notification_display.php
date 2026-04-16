@@ -43,8 +43,21 @@ function displayNotificationDropdown($userId) {
                     $icon = 'bi-info-circle-fill';
             }
             
+            // Determine the link based on notification type and user role
+            $link = '#';
+            if ($notification['related_type'] === 'requisition') {
+                // Check user role from session
+                if (isset($_SESSION['role_name'])) {
+                    if ($_SESSION['role_name'] === 'Pharmacist') {
+                        $link = 'manage_requisitions.php';
+                    } elseif ($_SESSION['role_name'] === 'Pharmacy Assistant') {
+                        $link = 'inventory.php'; // Redirect to inventory page for assistants
+                    }
+                }
+            }
+            
             echo '<li>';
-            echo '<a class="dropdown-item" href="#" onclick="markAsRead(' . $notification['id'] . ')">';
+            echo '<a class="dropdown-item" href="' . $link . '" onclick="markAsRead(' . $notification['id'] . ', \'' . $link . '\'); return false;">';
             echo '<div class="d-flex align-items-start">';
             echo '<i class="bi ' . $icon . ' ' . $typeClass . ' me-2 mt-1"></i>';
             echo '<div class="flex-grow-1">';
@@ -57,7 +70,7 @@ function displayNotificationDropdown($userId) {
             echo '<li><hr class="dropdown-divider"></li>';
         }
         
-        echo '<li><a class="dropdown-item text-center" href="notifications.php">View all notifications</a></li>';
+        echo '<li><a class="dropdown-item text-center text-primary" href="#" onclick="markAllAsRead(); return false;"><strong>Mark all as read</strong></a></li>';
     }
     
     echo '</ul>';
@@ -65,8 +78,23 @@ function displayNotificationDropdown($userId) {
     
     // Add JavaScript for marking notifications as read
     echo '<script>
-    function markAsRead(notificationId) {
-        fetch("mark_notification_read.php?id=" + notificationId)
+    function markAsRead(notificationId, redirectUrl) {
+        fetch("../../mark_notification_read.php?id=" + notificationId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = redirectUrl;
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                window.location.href = redirectUrl;
+            });
+        return false;
+    }
+    
+    function markAllAsRead() {
+        fetch("../../mark_all_notifications_read.php")
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
