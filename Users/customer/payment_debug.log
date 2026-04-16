@@ -1,0 +1,96 @@
+2026-04-16 08:38:29 - POST received
+2026-04-16 08:38:29 - Order items found: 2
+2026-04-16 08:38:29 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=3&amount=64","session_id":"mock_session_69e083e57bd8c"}
+2026-04-16 08:38:29 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=3&amount=64
+2026-04-16 08:38:34 - POST received
+2026-04-16 08:38:34 - Order items found: 2
+2026-04-16 08:38:34 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=3&amount=64","session_id":"mock_session_69e083ea84a62"}
+2026-04-16 08:38:34 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=3&amount=64
+2026-04-16 08:40:12 - POST received
+2026-04-16 08:40:12 - Order items found: 2
+2026-04-16 08:40:12 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=3&amount=64","session_id":"mock_session_69e0844ccdf57"}
+2026-04-16 08:40:12 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=3&amount=64
+2026-04-16 08:40:18 - POST received
+2026-04-16 08:40:18 - Order items found: 2
+2026-04-16 08:40:18 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=3&amount=64","session_id":"mock_session_69e08452d3e9e"}
+2026-04-16 08:40:18 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=3&amount=64
+2026-04-16 08:40:35 - POST received
+2026-04-16 08:40:35 - Order items found: 2
+2026-04-16 08:40:35 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=3&amount=64","session_id":"mock_session_69e0846352fc1"}
+2026-04-16 08:40:35 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=3&amount=64
+2026-04-16 08:42:21 - POST received
+2026-04-16 08:42:21 - Order items found: 2
+2026-04-16 08:42:21 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=3&amount=64","session_id":"mock_session_69e084cdb2e37"}
+2026-04-16 08:42:21 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=3&amount=64
+2026-04-16 08:42:29 - POST received
+2026-04-16 08:42:29 - Order items found: 2
+2026-04-16 08:42:29 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=3&amount=64","session_id":"mock_session_69e084d5e4bcf"}
+2026-04-16 08:42:29 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=3&amount=64
+2026-04-16 08:42:37 - POST received
+2026-04-16 08:42:37 - Order items found: 2
+2026-04-16 08:42:37 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=3&amount=64","session_id":"mock_session_69e084ddb3ac5"}
+2026-04-16 08:42:37 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=3&amount=64
+2026-04-16 08:45:47 - POST received
+2026-04-16 08:45:47 - Order items found: 1
+2026-04-16 08:45:47 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=4&amount=1099.89","session_id":"mock_session_69e0859bee42d"}
+2026-04-16 08:45:47 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=4&amount=1099.89
+2026-04-16 08:47:55 - POST received
+2026-04-16 08:47:55 - Order items found: 1
+2026-04-16 08:47:55 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=4&amount=1099.89","session_id":"mock_session_69e0861bb6241"}
+2026-04-16 08:47:55 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=4&amount=1099.89
+2026-04-16 08:48:10 - POST received
+2026-04-16 08:48:10 - Order items found: 1
+2026-04-16 08:48:10 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=4&amount=1099.89","session_id":"mock_session_69e0862a695cb"}
+2026-04-16 08:48:10 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=4&amount=1099.89
+2026-04-16 08:48:29 - POST received
+2026-04-16 08:48:29 - Order items found: 1
+2026-04-16 08:48:29 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=4&amount=1099.89","session_id":"mock_session_69e0863d1137f"}
+2026-04-16 08:48:29 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=4&amount=1099.89
+2026-04-16 08:51:52 - POST received
+2026-04-16 08:51:52 - Order items found: 1
+2026-04-16 08:51:52 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=4&amount=1099.89","session_id":"mock_session_69e0870820973"}
+2026-04-16 08:51:52 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=4&amount=1099.89
+2026-04-16 08:54:20 - POST received
+2026-04-16 08:54:20 - Order items found: 1
+2026-04-16 08:54:20 - createCheckoutSession result: {"success":true,"checkout_url":"http:\/\/localhost\/Pharmacy-Internship\/Users\/Users\/customer\/payment_mock.php?rx_id=4&amount=1099.89","session_id":"mock_session_69e0879ce1318"}
+2026-04-16 08:54:20 - Redirecting to: http://localhost/Pharmacy-Internship/Users/Users/customer/payment_mock.php?rx_id=4&amount=1099.89
+2026-04-16 08:56:39 - POST received
+2026-04-16 08:56:39 - Order items found: 1
+2026-04-16 08:56:39 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=4&amount=1099.89","session_id":"mock_session_69e0882757c92"}
+2026-04-16 08:56:39 - Redirecting to: payment_mock.php?rx_id=4&amount=1099.89
+2026-04-16 09:00:16 - POST received
+2026-04-16 09:00:16 - Order items found: 1
+2026-04-16 09:00:16 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=5&amount=99.99","session_id":"mock_session_69e08900a50c1"}
+2026-04-16 09:00:16 - Redirecting to: payment_mock.php?rx_id=5&amount=99.99
+2026-04-16 09:18:45 - POST received
+2026-04-16 09:18:45 - Order items found: 1
+2026-04-16 09:18:45 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=9&amount=10","session_id":"mock_session_69e08d55190cf"}
+2026-04-16 09:18:45 - Redirecting to: payment_mock.php?rx_id=9&amount=10
+2026-04-16 09:26:49 - POST received
+2026-04-16 09:26:49 - Order items found: 1
+2026-04-16 09:26:49 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=10&amount=250","session_id":"mock_session_69e08f392c0b5"}
+2026-04-16 09:26:49 - Redirecting to: payment_mock.php?rx_id=10&amount=250
+2026-04-16 09:52:40 - POST received
+2026-04-16 09:52:40 - Order items found: 1
+2026-04-16 09:52:40 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=12&amount=55","session_id":"mock_session_69e09548bfb3b"}
+2026-04-16 09:52:40 - Redirecting to: payment_mock.php?rx_id=12&amount=55
+2026-04-16 09:53:54 - POST received
+2026-04-16 09:53:54 - Order items found: 1
+2026-04-16 09:53:54 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=11&amount=55","session_id":"mock_session_69e095928700e"}
+2026-04-16 09:53:54 - Redirecting to: payment_mock.php?rx_id=11&amount=55
+2026-04-16 09:59:36 - POST received
+2026-04-16 09:59:36 - Order items found: 1
+2026-04-16 09:59:36 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=14&amount=44","session_id":"mock_session_69e096e87374a"}
+2026-04-16 09:59:36 - Redirecting to: payment_mock.php?rx_id=14&amount=44
+2026-04-16 11:12:37 - POST received
+2026-04-16 11:12:37 - Order items found: 1
+2026-04-16 11:12:37 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=16&amount=44","session_id":"mock_session_69e0a805a0026"}
+2026-04-16 11:12:37 - Redirecting to: payment_mock.php?rx_id=16&amount=44
+2026-04-16 11:16:09 - POST received
+2026-04-16 11:16:09 - Order items found: 1
+2026-04-16 11:16:09 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=15&amount=66","session_id":"mock_session_69e0a8d9c87d2"}
+2026-04-16 11:16:09 - Redirecting to: payment_mock.php?rx_id=15&amount=66
+2026-04-16 12:15:17 - POST received
+2026-04-16 12:15:17 - Order items found: 1
+2026-04-16 12:15:17 - createCheckoutSession result: {"success":true,"checkout_url":"payment_mock.php?rx_id=17&amount=120","session_id":"mock_session_69e0b6b57ebfa"}
+2026-04-16 12:15:17 - Redirecting to: payment_mock.php?rx_id=17&amount=120

@@ -575,4 +575,182 @@ class InternshipController extends Controller {
         
         return $stmt->get_result()->fetch_assoc();
     }
+    
+    /**
+     * Get task statistics for an intern
+     */
+    public function getInternTaskStats($intern_id) {
+        $stats = [
+            'total' => 0,
+            'completed' => 0,
+            'pending' => 0,
+            'in_progress' => 0,
+            'late' => 0
+        ];
+        
+        // Get total tasks from internship_routine table
+        $total_sql = "SELECT COUNT(*) as total FROM internship_routine WHERE assigned_to = ?";
+        $stmt = $this->conn->prepare($total_sql);
+        $stmt->bind_param("i", $intern_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stats['total'] = $result['total'];
+        
+        // Get completed tasks (status = 'finished')
+        $completed_sql = "SELECT COUNT(*) as completed FROM internship_routine WHERE assigned_to = ? AND status = 'finished'";
+        $stmt = $this->conn->prepare($completed_sql);
+        $stmt->bind_param("i", $intern_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stats['completed'] = $result['completed'];
+        
+        // Get pending tasks
+        $pending_sql = "SELECT COUNT(*) as pending FROM internship_routine WHERE assigned_to = ? AND status = 'pending'";
+        $stmt = $this->conn->prepare($pending_sql);
+        $stmt->bind_param("i", $intern_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stats['pending'] = $result['pending'];
+        
+        // Get in progress tasks (if status column has 'in_progress' value)
+        $progress_sql = "SELECT COUNT(*) as in_progress FROM internship_routine WHERE assigned_to = ? AND status = 'in_progress'";
+        $stmt = $this->conn->prepare($progress_sql);
+        $stmt->bind_param("i", $intern_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stats['in_progress'] = $result['in_progress'];
+        
+        // Get late tasks (due date passed and not finished)
+        $late_sql = "SELECT COUNT(*) as late FROM internship_routine 
+                     WHERE assigned_to = ? AND status = 'late'";
+        $stmt = $this->conn->prepare($late_sql);
+        $stmt->bind_param("i", $intern_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stats['late'] = $result['late'];
+        
+        return $stats;
+    }
+    
+    /**
+     * Get all tasks for an intern
+     */
+    public function getInternTasks($intern_id, $status = null) {
+        $sql = "SELECT t.id, t.title as task_title, t.duties as task_description, 
+                t.date_from as assigned_date, t.date_to as due_date, 
+                t.status, t.created_at,
+                u.first_name, u.last_name,
+                NULL as completed_date, 'Medium' as priority, 'General' as category
+                FROM internship_routine t
+                LEFT JOIN users u ON t.assigned_by_user_id = u.id
+                WHERE t.assigned_to = ?";
+        
+        if ($status) {
+            // Map status values: 'Completed' -> 'finished', 'Pending' -> 'pending', etc.
+            $mapped_status = strtolower($status);
+            if ($mapped_status === 'completed') {
+                $mapped_status = 'finished';
+            }
+            $sql .= " AND t.status = ?";
+        }
+        
+        $sql .= " ORDER BY t.date_to ASC";
+        
+        $stmt = $this->conn->prepare($sql);
+        
+        if ($status) {
+            $stmt->bind_param("is", $intern_id, $mapped_status);
+        } else {
+            $stmt->bind_param("i", $intern_id);
+        }
+        
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $tasks = [];
+        while ($row = $result->fetch_assoc()) {
+            // Map status back to display format
+            if ($row['status'] === 'finished') {
+                $row['status'] = 'Completed';
+            } elseif ($row['status'] === 'pending') {
+                $row['status'] = 'Pending';
+            } elseif ($row['status'] === 'late') {
+                $row['status'] = 'Late';
+            }
+            
+            // Check if task is late
+            if ($row['status'] != 'Completed' && strtotime($row['due_date']) < time()) {
+                $row['is_late'] = true;
+            } else {
+                $row['is_late'] = false;
+            }
+            $tasks[] = $row;
+        }
+        
+        return $tasks;
+    }
+    
+    /**
+     * Create a new task for an intern
+     */
+    public function createTask($task_data) {
+        $sql = "INSERT INTO intern_tasks (intern_id, task_title, task_description, assigned_by, 
+                due_date, priority, category, notes) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param(
+            "isssisss",
+            $task_data['intern_id'],
+            $task_data['task_title'],
+            $task_data['task_description'],
+            $task_data['assigned_by'],
+            $task_data['due_date'],
+            $task_data['priority'],
+            $task_data['category'],
+            $task_data['notes']
+        );
+        
+        if ($stmt->execute()) {
+            // Create notification for intern
+            $task_id = $stmt->insert_id;
+            $notif_sql = "INSERT INTO notifications (user_id, type, title, message, related_id) 
+                         VALUES (?, ?, ?, ?, ?)";
+            $notif_stmt = $this->conn->prepare($notif_sql);
+            $notif_type = 'task_assigned';
+            $notif_title = 'New Task Assigned';
+            $notif_message = 'You have been assigned a new task: ' . $task_data['task_title'];
+            $notif_stmt->bind_param(
+                "isssi",
+                $task_data['intern_id'],
+                $notif_type,
+                $notif_title,
+                $notif_message,
+                $task_id
+            );
+            $notif_stmt->execute();
+            
+            return $task_id;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Update task status
+     */
+    public function updateTaskStatus($task_id, $status, $notes = null) {
+        $sql = "UPDATE intern_tasks SET status = ?, notes = ?";
+        
+        if ($status === 'Completed') {
+            $sql .= ", completed_date = NOW()";
+        }
+        
+        $sql .= " WHERE id = ?";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("ssi", $status, $notes, $task_id);
+        
+        return $stmt->execute();
+    }
 }

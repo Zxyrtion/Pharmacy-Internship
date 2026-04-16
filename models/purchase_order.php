@@ -132,6 +132,14 @@ class PurchaseOrder {
             // Update requisition status to 'Processed'
             $this->updateRequisitionStatus($requisition_id, 'Processed');
             
+            // Update inventory stock for each item
+            error_log("PO_GENERATION: Starting inventory updates for PO: $purchase_order_id");
+            foreach ($requisition_items as $item) {
+                error_log("PO_GENERATION: Updating stock for: " . $item['medicine_name'] . " qty: " . $item['requested_quantity']);
+                $result = $this->updateInventoryStock($item['medicine_name'], $item['requested_quantity'], $created_by, 'Purchase Order Generated', $purchase_order_id);
+                error_log("PO_GENERATION: Update result: " . ($result ? 'SUCCESS' : 'FAILED'));
+            }
+            
             // Commit transaction
             $this->conn->commit();
             
@@ -266,6 +274,43 @@ class PurchaseOrder {
             
             // Commit transaction
             $this->conn->commit();
+            
+            // Send notification to all pharmacists and pharmacy assistants
+            require_once __DIR__ . '/../notification_helper.php';
+            
+            // Get pharmacists
+            $pharmacist_stmt = $this->conn->prepare("
+                SELECT u.id 
+                FROM users u 
+                INNER JOIN roles r ON u.role_id = r.id 
+                WHERE r.role_name = 'Pharmacist'
+            ");
+            if ($pharmacist_stmt) {
+                $pharmacist_stmt->execute();
+                $pharmacist_result = $pharmacist_stmt->get_result();
+                while ($pharmacist = $pharmacist_result->fetch_assoc()) {
+                    $message = "New stock requisition $requisition_id has been submitted by $pharmacist_name. Total Amount: ₱" . number_format($total_amount, 2) . ". Urgency: $urgency";
+                    createNotification($pharmacist['id'], $message, 'info', 'requisition', $req_db_id);
+                }
+                $pharmacist_stmt->close();
+            }
+            
+            // Get pharmacy assistants
+            $assistant_stmt = $this->conn->prepare("
+                SELECT u.id 
+                FROM users u 
+                INNER JOIN roles r ON u.role_id = r.id 
+                WHERE r.role_name = 'Pharmacy Assistant'
+            ");
+            if ($assistant_stmt) {
+                $assistant_stmt->execute();
+                $assistant_result = $assistant_stmt->get_result();
+                while ($assistant = $assistant_result->fetch_assoc()) {
+                    $message = "New stock requisition $requisition_id has been submitted by $pharmacist_name. Total Amount: ₱" . number_format($total_amount, 2) . ". Urgency: $urgency";
+                    createNotification($assistant['id'], $message, 'info', 'requisition', $req_db_id);
+                }
+                $assistant_stmt->close();
+            }
             
             return [
                 'success' => true,
@@ -440,6 +485,61 @@ class PurchaseOrder {
         if ($r) $stats['delivered'] = $r->fetch_assoc()['delivered'];
 
         return $stats;
+    }
+    
+    // Update inventory stock when PO is generated
+    public function updateInventoryStock($medicine_name, $quantity, $user_id, $reason, $reference_id = null) {
+        // Check if medicine exists in medicines table
+        $check_sql = "SELECT id, stock_quantity FROM medicines WHERE medicine_name = ?";
+        $stmt = $this->conn->prepare($check_sql);
+        
+        if (!$stmt) {
+            error_log("Error preparing check statement: " . $this->conn->error);
+            return false;
+        }
+        
+        $stmt->bind_param("s", $medicine_name);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $medicine = $result->fetch_assoc();
+        $stmt->close();
+        
+        if ($medicine) {
+            // Medicine exists - update stock
+            $new_stock = $medicine['stock_quantity'] + $quantity;
+            $update_sql = "UPDATE medicines SET stock_quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+            $stmt = $this->conn->prepare($update_sql);
+            
+            if (!$stmt) {
+                error_log("Error preparing update statement: " . $this->conn->error);
+                return false;
+            }
+            
+            $stmt->bind_param("ii", $new_stock, $medicine['id']);
+            $stmt->execute();
+            $stmt->close();
+            
+            // Log the stock change
+            $log_sql = "INSERT INTO stock_changes (medicine_id, medicine_name, previous_stock, new_stock, change_amount, reason, changed_by, reference_id, created_at) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+            $stmt = $this->conn->prepare($log_sql);
+            
+            if (!$stmt) {
+                error_log("Error preparing log statement: " . $this->conn->error);
+                return false;
+            }
+            
+            $stmt->bind_param("isiissis", $medicine['id'], $medicine_name, $medicine['stock_quantity'], 
+                             $new_stock, $quantity, $reason, $user_id, $reference_id);
+            $stmt->execute();
+            $stmt->close();
+            
+            return true;
+        } else {
+            // Medicine doesn't exist in medicines table - log warning but don't fail the PO generation
+            error_log("Warning: Medicine '$medicine_name' not found in medicines table. Stock not updated. PO will still be created.");
+            return true; // Return true so PO generation continues
+        }
     }
 }
 ?>

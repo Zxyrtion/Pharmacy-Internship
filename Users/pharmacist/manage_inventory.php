@@ -180,8 +180,20 @@ $email = $_SESSION['email'];
     <div class="inventory-container">
         <div class="container">
             <div class="inventory-card">
-                <h2><i class="bi bi-capsule"></i> Manage Inventory</h2>
-                <p class="text-muted">Check stock levels, monitor orders, and manage medicine inventory</p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2><i class="bi bi-capsule"></i> Manage Inventory</h2>
+                        <p class="text-muted mb-0">Check stock levels, monitor orders, and manage medicine inventory</p>
+                    </div>
+                    <div>
+                        <a href="view_stock_changes.php" class="btn btn-info">
+                            <i class="bi bi-clock-history"></i> View Stock Changes History
+                        </a>
+                        <a href="add_medicine.php" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> Add New Medicine
+                        </a>
+                    </div>
+                </div>
                 
                 <?php if ($success_message): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">

@@ -147,7 +147,7 @@ $unread_count = $notification->getUnreadCount($user_id);
                             } elseif ($n['type'] === 'schedule_rejected') {
                                 $link = 'edit_work_schedule.php?schedule_id=' . $n['related_id'];
                             } elseif ($n['type'] === 'task_completed') {
-                                $link = 'employees.php';
+                                $link = 'view_ready_interns.php';
                             } elseif ($n['type'] === 'new_application') {
                                 $link = 'internship_applications.php';
                             }

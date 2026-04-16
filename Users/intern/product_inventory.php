@@ -47,8 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_descriptions = $_POST['new_description'] ?? [];
         $new_prices = $_POST['new_price'] ?? [];
         
-        $ins_stmt = $conn->prepare("INSERT INTO product_inventory (intern_id, product_name, description, quantity, price, total_price) VALUES (?, ?, ?, ?, ?, ?)");
-        $upd_stmt = $conn->prepare("UPDATE product_inventory SET quantity=?, total_price=? WHERE id=? AND intern_id=?");
+        $ins_stmt = $conn->prepare("INSERT INTO intern_product_inventory (intern_id, product_name, description, quantity, price, total_price) VALUES (?, ?, ?, ?, ?, ?)");
+        $upd_stmt = $conn->prepare("UPDATE intern_product_inventory SET quantity=?, total_price=? WHERE id=? AND intern_id=?");
+        
+        if (!$ins_stmt || !$upd_stmt) {
+            throw new Exception("Failed to prepare statements: " . $conn->error);
+        }
         
         // Process ALL medicines (both predefined and new)
         $predefined_count = count($medicines);
@@ -104,8 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        if(isset($ins_stmt)) $ins_stmt->close();
-        if(isset($upd_stmt)) $upd_stmt->close();
+        if($ins_stmt && is_object($ins_stmt)) $ins_stmt->close();
+        if($upd_stmt && is_object($upd_stmt)) $upd_stmt->close();
         
         $conn->commit();
         $_SESSION['success_msg'] = "Inventory saved successfully.";
@@ -120,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch existing products into a mapped array
 $existing_mapped = [];
 if (isset($conn)) {
-    $stmt = $conn->prepare("SELECT * FROM product_inventory WHERE intern_id = ?");
+    $stmt = $conn->prepare("SELECT * FROM intern_product_inventory WHERE intern_id = ?");
     if ($stmt) {
         $stmt->bind_param("i", $user_id);
         $stmt->execute();

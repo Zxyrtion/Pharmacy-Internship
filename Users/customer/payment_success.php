@@ -31,7 +31,7 @@ if ($is_mock) {
         $upd->execute();
     } else {
         // Create new payment record
-        $sr_temp = $conn->prepare("SELECT o.total_amount FROM purchase_orders o WHERE o.prescription_id=? ORDER BY id DESC LIMIT 1");
+        $sr_temp = $conn->prepare("SELECT o.total_amount FROM prescription_orders o WHERE o.prescription_id=? ORDER BY id DESC LIMIT 1");
         $sr_temp->bind_param('i', $rx_id);
         $sr_temp->execute();
         $order_temp = $sr_temp->get_result()->fetch_assoc();
@@ -43,13 +43,13 @@ if ($is_mock) {
         $ins->execute();
     }
     
-    // Mark prescription as Dispensed
-    $upd2 = $conn->prepare("UPDATE prescriptions SET status='Dispensed' WHERE id=?");
+    // Mark prescription as Completed (payment received)
+    $upd2 = $conn->prepare("UPDATE prescriptions SET status='Completed' WHERE id=?");
     $upd2->bind_param('i', $rx_id);
     $upd2->execute();
     
-    // Mark order as Paid
-    $upd3 = $conn->prepare("UPDATE purchase_orders SET status='Paid' WHERE prescription_id=?");
+    // Mark order as Dispensed
+    $upd3 = $conn->prepare("UPDATE prescription_orders SET status='Dispensed' WHERE prescription_id=?");
     $upd3->bind_param('i', $rx_id);
     $upd3->execute();
     
@@ -68,13 +68,13 @@ if ($is_mock) {
         $upd->bind_param('si', $payment_id, $payment['id']);
         $upd->execute();
 
-        // Mark prescription as Dispensed
-        $upd2 = $conn->prepare("UPDATE prescriptions SET status='Dispensed' WHERE id=?");
+        // Mark prescription as Completed (payment received)
+        $upd2 = $conn->prepare("UPDATE prescriptions SET status='Completed' WHERE id=?");
         $upd2->bind_param('i', $rx_id);
         $upd2->execute();
 
-        // Mark order as Paid
-        $upd3 = $conn->prepare("UPDATE purchase_orders SET status='Paid' WHERE prescription_id=?");
+        // Mark order as Dispensed
+        $upd3 = $conn->prepare("UPDATE prescription_orders SET status='Dispensed' WHERE prescription_id=?");
         $upd3->bind_param('i', $rx_id);
         $upd3->execute();
     }
@@ -82,7 +82,7 @@ if ($is_mock) {
 
 // Load prescription for receipt
 $sr = $conn->prepare("SELECT p.*, o.total_amount FROM prescriptions p
-    LEFT JOIN purchase_orders o ON o.prescription_id = p.id
+    LEFT JOIN prescription_orders o ON o.prescription_id = p.id
     WHERE p.id=?");
 $sr->bind_param('i', $rx_id);
 $sr->execute();
@@ -100,6 +100,16 @@ $rx = $sr->get_result()->fetch_assoc();
         body { background: #f0f2f5; }
         .page-card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 2rem; margin-top: 1.5rem; }
         .success-icon { font-size: 5rem; color: #198754; }
+        .modal-success .modal-content { border-radius: 20px; border: none; }
+        .modal-success .modal-body { padding: 3rem 2rem; text-align: center; }
+        .modal-success .success-animation { font-size: 5rem; color: #198754; animation: scaleIn 0.5s ease-out; }
+        @keyframes scaleIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .modal-success h3 { color: #198754; font-weight: 700; margin-top: 1rem; }
+        .modal-success .redirect-text { color: #6c757d; font-size: 0.9rem; margin-top: 1rem; }
         @media print { .no-print { display: none !important; } body { background: white; } .page-card { box-shadow: none; } }
     </style>
 </head>
@@ -113,6 +123,24 @@ $rx = $sr->get_result()->fetch_assoc();
         </div>
     </div>
 </nav>
+
+<!-- Success Modal -->
+<div class="modal fade modal-success" id="successModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="success-animation">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h3>Payment Successful!</h3>
+                <p class="text-muted mb-0">Your payment has been confirmed.</p>
+                <p class="redirect-text">
+                    <i class="bi bi-arrow-clockwise"></i> Redirecting to dashboard in <span id="countdown">3</span> seconds...
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="container pb-5">
     <div class="page-card text-center">
@@ -130,7 +158,7 @@ $rx = $sr->get_result()->fetch_assoc();
                     <?php if ($payment_method_used): ?>
                     <p class="mb-1"><strong>Method:</strong> <?= strtoupper($payment_method_used) ?></p>
                     <?php endif; ?>
-                    <p class="mb-0"><strong>Status:</strong> <span class="badge bg-success">Paid</span></p>
+                    <p class="mb-0"><strong>Status:</strong> <span class="badge bg-success">Completed</span></p>
                 </div>
             </div>
 
@@ -150,6 +178,30 @@ $rx = $sr->get_result()->fetch_assoc();
         <?php endif; ?>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+<?php if ($verified): ?>
+// Show success modal automatically
+document.addEventListener('DOMContentLoaded', function() {
+    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+    successModal.show();
+    
+    // Countdown and redirect
+    let countdown = 3;
+    const countdownElement = document.getElementById('countdown');
+    
+    const timer = setInterval(function() {
+        countdown--;
+        countdownElement.textContent = countdown;
+        
+        if (countdown <= 0) {
+            clearInterval(timer);
+            window.location.href = 'dashboard.php';
+        }
+    }, 1000);
+});
+<?php endif; ?>
+</script>
 </body>
 </html>

@@ -18,8 +18,22 @@ $purchaseOrder = new PurchaseOrder($conn);
 $success_message = '';
 $error_message = '';
 
+// Get parameters for auto-loading from approved inventory report
+// Try POST first (from form submission), then GET (from URL)
+$period = '';
+$reporter = '';
+
+if (isset($_POST['period']) && isset($_POST['reporter'])) {
+    $period = sanitizeInput($_POST['period']);
+    $reporter = sanitizeInput($_POST['reporter']);
+} elseif (isset($_GET['period']) && isset($_GET['reporter'])) {
+    $period = sanitizeInput($_GET['period']);
+    $reporter = sanitizeInput($_GET['reporter']);
+}
+
 // Handle form submission
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['department'])) {
+    // Only process if it's an actual form submission (has department field)
     $technician_id = $_SESSION['user_id'];
     $technician_name = $_SESSION['full_name'];
     $department = $_POST['department'];
@@ -52,6 +66,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($result['success']) {
             $success_message = "Requisition created successfully! Requisition ID: " . $result['requisition_id'] . 
                                " Total Amount: ₱" . number_format($result['total_amount'], 2);
+            $show_success_modal = true;
+            $requisition_id = $result['requisition_id'];
+            $total_amount = $result['total_amount'];
             // Clear form data
             $_POST = [];
         } else {
@@ -64,6 +81,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 // Get suppliers for dropdown
 $suppliers = $purchaseOrder->getSuppliers();
+
+// Fetch items from approved inventory report if parameters are provided
+$items_from_report = [];
+if (!empty($period) && !empty($reporter)) {
+    // First, get the maximum ID (latest submission) for this period/reporter
+    $max_id_sql = "SELECT MAX(id) as max_id FROM inventory_report 
+                   WHERE inventory_period = ? AND reporter = ? AND status = 'Approved'";
+    $stmt = $conn->prepare($max_id_sql);
+    $stmt->bind_param("ss", $period, $reporter);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $max_row = $result->fetch_assoc();
+    $max_id = $max_row['max_id'];
+    $stmt->close();
+    
+    if ($max_id) {
+        // Get the created_at timestamp of the latest submission
+        $time_sql = "SELECT created_at FROM inventory_report WHERE id = ?";
+        $stmt = $conn->prepare($time_sql);
+        $stmt->bind_param("i", $max_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $time_row = $result->fetch_assoc();
+        $latest_created_at = $time_row['created_at'];
+        $stmt->close();
+        
+        // Now get all items from that submission batch (same created_at)
+        $items_sql = "SELECT item_number_name, description, item_reorder_quantity, cost_per_item, manufacturer, stock_quantity, reorder_point 
+                      FROM inventory_report 
+                      WHERE inventory_period = ? 
+                      AND reporter = ? 
+                      AND status = 'Approved' 
+                      AND reorder_required = 'Yes'
+                      AND created_at = ?
+                      ORDER BY id DESC";
+        $stmt = $conn->prepare($items_sql);
+        $stmt->bind_param("sss", $period, $reporter, $latest_created_at);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $items_from_report[] = $row;
+        }
+        $stmt->close();
+    }
+}
 
 $user_id = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
@@ -212,9 +274,14 @@ $email = $_SESSION['email'];
                 <div class="requisition-header">
                     <div class="requisition-title">PURCHASE REQUISITION</div>
                     <div class="text-muted">Process 13: Generate Requisition</div>
+                    <?php if (!empty($period) && !empty($reporter)): ?>
+                        <div class="alert alert-success mt-2 mb-0">
+                            <i class="bi bi-check-circle"></i> <strong>Auto-loaded from Approved Inventory Report:</strong> <?= htmlspecialchars($period) ?> by <?= htmlspecialchars($reporter) ?> (<?= count($items_from_report) ?> items)
+                        </div>
+                    <?php endif; ?>
                 </div>
                 
-                <?php if ($success_message): ?>
+                <?php if ($success_message && !isset($show_success_modal)): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="bi bi-check-circle"></i> <?php echo $success_message; ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -263,8 +330,38 @@ $email = $_SESSION['email'];
                                     </tr>
                                 </thead>
                                 <tbody id="itemsTableBody">
+                                    <?php if (!empty($items_from_report)): ?>
+                                        <?php foreach($items_from_report as $item): ?>
+                                            <tr>
+                                                <td>
+                                                    <input type="text" class="form-control" name="medicine_name[]" placeholder="Medicine/Item name" value="<?= htmlspecialchars($item['item_number_name']) ?>" required>
+                                                    <input type="hidden" name="current_stock[]" value="<?= htmlspecialchars($item['stock_quantity'] ?? 0) ?>">
+                                                    <input type="hidden" name="reorder_level[]" value="<?= htmlspecialchars($item['reorder_point'] ?? 0) ?>">
+                                                </td>
+                                                <td><input type="number" class="form-control" name="quantity[]" placeholder="Qty" min="1" value="<?= htmlspecialchars($item['item_reorder_quantity']) ?>" required></td>
+                                                <td><input type="text" class="form-control" name="dosage[]" placeholder="Dosage/Specs" value="<?= htmlspecialchars($item['description']) ?>"></td>
+                                                <td><input type="number" class="form-control" name="unit_price[]" placeholder="Price" step="0.01" min="0" value="<?= htmlspecialchars($item['cost_per_item']) ?>" required></td>
+                                                <td><input type="text" class="form-control" name="amount[]" readonly placeholder="0.00"></td>
+                                                <td>
+                                                    <select class="form-select" name="supplier[]">
+                                                        <option value="">Select Supplier</option>
+                                                        <?php foreach ($suppliers as $supplier): ?>
+                                                            <option value="<?php echo htmlspecialchars($supplier['supplier_name']); ?>" <?= (!empty($item['manufacturer']) && $item['manufacturer'] === $supplier['supplier_name']) ? 'selected' : '' ?>>
+                                                                <?php echo htmlspecialchars($supplier['supplier_name']); ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </td>
+                                                <td><button type="button" class="btn btn-sm btn-danger btn-remove-item" onclick="removeItem(this)"><i class="bi bi-trash"></i></button></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
                                     <tr>
-                                        <td><input type="text" class="form-control" name="medicine_name[]" placeholder="Medicine/Item name" required></td>
+                                        <td>
+                                            <input type="text" class="form-control" name="medicine_name[]" placeholder="Medicine/Item name" required>
+                                            <input type="hidden" name="current_stock[]" value="0">
+                                            <input type="hidden" name="reorder_level[]" value="0">
+                                        </td>
                                         <td><input type="number" class="form-control" name="quantity[]" placeholder="Qty" min="1" required></td>
                                         <td><input type="text" class="form-control" name="dosage[]" placeholder="Dosage/Specs"></td>
                                         <td><input type="number" class="form-control" name="unit_price[]" placeholder="Price" step="0.01" min="0" required></td>
@@ -281,6 +378,7 @@ $email = $_SESSION['email'];
                                         </td>
                                         <td><button type="button" class="btn btn-sm btn-danger btn-remove-item" onclick="removeItem(this)"><i class="bi bi-trash"></i></button></td>
                                     </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -349,6 +447,32 @@ $email = $_SESSION['email'];
         </div>
     </div>
     
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);">
+                <div class="modal-body text-center p-5">
+                    <div class="mb-4">
+                        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                            <i class="bi bi-check-circle text-white" style="font-size: 3rem;"></i>
+                        </div>
+                    </div>
+                    <h3 class="mb-3" style="color: #495057; font-weight: bold;">Requisition Sent!</h3>
+                    <p class="text-muted mb-2" style="font-size: 1.1rem;">Your requisition has been successfully sent to the pharmacist for review.</p>
+                    <?php if (isset($requisition_id)): ?>
+                    <div class="alert alert-info mt-4" style="background: #e8f4f8; border: none; border-radius: 15px;">
+                        <strong>Requisition ID:</strong> <?php echo htmlspecialchars($requisition_id); ?><br>
+                        <strong>Total Amount:</strong> ₱<?php echo number_format($total_amount, 2); ?>
+                    </div>
+                    <?php endif; ?>
+                    <button type="button" class="btn btn-primary mt-3" onclick="window.location.href='dashboard.php'" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 25px; padding: 12px 40px; font-weight: 600;">
+                        <i class="bi bi-house-door"></i> Go to Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -361,7 +485,11 @@ $email = $_SESSION['email'];
             const newRow = document.createElement('tr');
             
             newRow.innerHTML = `
-                <td><input type="text" class="form-control" name="medicine_name[]" placeholder="Medicine/Item name" required></td>
+                <td>
+                    <input type="text" class="form-control" name="medicine_name[]" placeholder="Medicine/Item name" required>
+                    <input type="hidden" name="current_stock[]" value="0">
+                    <input type="hidden" name="reorder_level[]" value="0">
+                </td>
                 <td><input type="number" class="form-control" name="quantity[]" placeholder="Qty" min="1" required onchange="calculateTotal()"></td>
                 <td><input type="text" class="form-control" name="dosage[]" placeholder="Dosage/Specs"></td>
                 <td><input type="number" class="form-control" name="unit_price[]" placeholder="Price" step="0.01" min="0" required onchange="calculateTotal()"></td>
@@ -421,6 +549,17 @@ $email = $_SESSION['email'];
             // Set minimum dates
             document.getElementById('requisition_date').min = new Date().toISOString().split('T')[0];
             document.getElementById('date_required').min = new Date().toISOString().split('T')[0];
+            
+            // Calculate totals on page load (for pre-filled data from inventory report)
+            calculateTotal();
+            
+            <?php if (isset($show_success_modal) && $show_success_modal): ?>
+            // Show success modal after a short delay
+            setTimeout(function() {
+                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                successModal.show();
+            }, 300);
+            <?php endif; ?>
         });
     </script>
 </body>

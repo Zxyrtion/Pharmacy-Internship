@@ -38,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Insert each medicine as a separate row (based on existing table structure)
         $stmt = $conn->prepare("INSERT INTO prescriptions 
-            (customer_id, prescription_id, patient_id, patient_name, medicine_name, dosage, quantity, instructions, doctor_name, date_prescribed, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
+            (patient_id, prescription_id, patient_name, medicine_name, dosage, quantity, instructions, doctor_name, date_prescribed, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
         
         if ($stmt === false) {
             $errors[] = 'Database error: ' . $conn->error;
@@ -51,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $qty  = $item['quantity'] ?? '1';
                 $instructions  = $item['sig'] ?? '';
                 
-                $stmt->bind_param('isiissssss',
-                    $customer_id, $prescription_id, $patient_id, $patient_name,
+                $stmt->bind_param('isissssss',
+                    $patient_id, $prescription_id, $patient_name,
                     $med, $dosage, $qty, $instructions, $doctor_name, $rx_date);
                 
                 if ($stmt->execute()) {
@@ -256,10 +256,63 @@ $rows = isset($_POST['items']) ? $_POST['items'] : array_fill(0, 3, []);
 
             <div class="d-flex gap-2 mt-4 no-print">
                 <button type="submit" class="btn btn-primary px-4"><i class="bi bi-send"></i> Submit Prescription</button>
+                <button type="button" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#uploadReceiptModal">
+                    <i class="bi bi-upload"></i> Upload Prescription
+                </button>
+                <a href="dispense_product.php?rx_id=12" class="btn btn-info px-4">
+                    <i class="bi bi-receipt"></i> View Prescription
+                </a>
                 <button type="button" class="btn btn-outline-secondary px-4" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
                 <button type="reset" class="btn btn-outline-danger px-4"><i class="bi bi-x-circle"></i> Clear</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Upload Receipt Modal -->
+<div class="modal fade" id="uploadReceiptModal" tabindex="-1" aria-labelledby="uploadReceiptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="uploadReceiptModalLabel">
+                    <i class="bi bi-upload"></i> Upload Prescription Receipt (Resita)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="uploadReceiptForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Upload a clear photo or scan of your prescription receipt from your doctor.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="receiptFile" class="form-label fw-semibold">Select File</label>
+                        <input type="file" class="form-control" id="receiptFile" name="receipt_file" 
+                               accept="image/*,.pdf" required>
+                        <div class="form-text">Accepted formats: JPG, PNG, PDF (Max 5MB)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="receiptNotes" class="form-label fw-semibold">Additional Notes (Optional)</label>
+                        <textarea class="form-control" id="receiptNotes" name="notes" rows="3" 
+                                  placeholder="Add any additional information about your prescription..."></textarea>
+                    </div>
+
+                    <div id="uploadProgress" class="progress d-none mb-3" style="height: 25px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: 0%">0%</div>
+                    </div>
+
+                    <div id="uploadMessage"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="uploadBtn">
+                        <i class="bi bi-upload"></i> Upload Receipt
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -288,6 +341,80 @@ $rows = isset($_POST['items']) ? $_POST['items'] : array_fill(0, 3, []);
         attachRemove(tr);
         rowIdx++;
     });
+
+    // Handle receipt upload
+    document.getElementById('uploadReceiptForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('receiptFile');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            showMessage('Please select a file to upload.', 'danger');
+            return;
+        }
+
+        // Check file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            showMessage('File size must be less than 5MB.', 'danger');
+            return;
+        }
+
+        const formData = new FormData(this);
+        const progressBar = document.getElementById('uploadProgress');
+        const progressBarInner = progressBar.querySelector('.progress-bar');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        // Show progress bar
+        progressBar.classList.remove('d-none');
+        uploadBtn.disabled = true;
+
+        // Simulate upload progress (replace with actual AJAX call)
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            progressBarInner.style.width = progress + '%';
+            progressBarInner.textContent = progress + '%';
+
+            if (progress >= 100) {
+                clearInterval(interval);
+                
+                // Send to server
+                fetch('upload_receipt.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('Receipt uploaded successfully!', 'success');
+                        setTimeout(() => {
+                            bootstrap.Modal.getInstance(document.getElementById('uploadReceiptModal')).hide();
+                            this.reset();
+                            progressBar.classList.add('d-none');
+                            progressBarInner.style.width = '0%';
+                            uploadBtn.disabled = false;
+                        }, 2000);
+                    } else {
+                        showMessage('Upload failed: ' + data.message, 'danger');
+                        uploadBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    showMessage('Upload error: ' + error.message, 'danger');
+                    uploadBtn.disabled = false;
+                });
+            }
+        }, 200);
+    });
+
+    function showMessage(message, type) {
+        const messageDiv = document.getElementById('uploadMessage');
+        messageDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => {
+            messageDiv.innerHTML = '';
+        }, 5000);
+    }
 </script>
 </body>
 </html>

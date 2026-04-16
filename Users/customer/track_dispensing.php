@@ -9,7 +9,7 @@ $full_name = $_SESSION['full_name'];
 $prescriptions = [];
 if ($s = $conn->prepare("SELECT 
     p.prescription_id,
-    p.customer_id,
+    p.patient_id,
     p.patient_name,
     p.doctor_name,
     p.date_prescribed,
@@ -18,7 +18,7 @@ if ($s = $conn->prepare("SELECT
     MAX(p.created_at) as created_at,
     COUNT(*) as item_count
     FROM prescriptions p
-    WHERE p.customer_id = ?
+    WHERE p.patient_id = ?
     GROUP BY p.prescription_id
     ORDER BY MAX(p.created_at) DESC")) {
     $s->bind_param('i', $_SESSION['user_id']);
@@ -33,7 +33,7 @@ $steps = [
     '' => 1,           // Empty status defaults to step 1
     'Processing' => 2,
     'Ready' => 3,
-    'Dispensed' => 4
+    'Completed' => 4
 ];
 ?>
 <!DOCTYPE html>
@@ -119,7 +119,7 @@ $steps = [
                 1 => ['label' => 'Submitted',   'icon' => 'bi-file-earmark-medical'],
                 2 => ['label' => 'Processing',   'icon' => 'bi-cart-check'],
                 3 => ['label' => 'Ready',        'icon' => 'bi-bag-check'],
-                4 => ['label' => 'Dispensed',    'icon' => 'bi-check-circle'],
+                4 => ['label' => 'Completed',    'icon' => 'bi-check-circle'],
             ];
             foreach ($step_defs as $num => $def):
                 $cls = $num < $current_step ? 'done' : ($num === $current_step ? 'active' : '');
@@ -150,7 +150,7 @@ $steps = [
         <div class="alert alert-warning py-2 mt-2">
             <i class="bi bi-clock"></i> Waiting for pharmacist to process your prescription.
         </div>
-        <?php elseif ($status === 'Dispensed'): ?>
+        <?php elseif ($status === 'Completed'): ?>
         <div class="alert alert-secondary py-2 mt-2">
             <i class="bi bi-check-circle-fill"></i> Completed and paid.
         </div>

@@ -579,6 +579,42 @@ if ($list_stmt) {
                         <button class="btn btn-primary">View Progress</button>
                     </div>
                 </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-truck feature-icon"></i>
+                        <h4>Suppliers</h4>
+                        <p>Manage supplier information</p>
+                        <a href="supplier_management.php" class="btn btn-primary">View Suppliers</a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-clock-history feature-icon"></i>
+                        <h4>Stock Movements</h4>
+                        <p>Track inventory changes</p>
+                        <a href="inventory_movements.php" class="btn btn-primary">View History</a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-list-check feature-icon"></i>
+                        <h4>Product Inventory</h4>
+                        <p>Simple product inventory</p>
+                        <a href="product_inventory.php" class="btn btn-primary">View Products</a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="feature-card">
+                        <i class="bi bi-file-earmark-bar-graph feature-icon"></i>
+                        <h4>Inventory Report</h4>
+                        <p>Generate inventory reports</p>
+                        <a href="inventory_report.php" class="btn btn-primary">Create Report</a>
+                    </div>
+                </div>
             </div>
 
             

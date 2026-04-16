@@ -9,7 +9,7 @@ $full_name = $_SESSION['full_name'];
 $orders = [];
 if ($s = $conn->prepare("SELECT 
     p.prescription_id,
-    p.customer_id,
+    p.patient_id,
     p.patient_name,
     p.doctor_name,
     p.date_prescribed,
@@ -17,7 +17,7 @@ if ($s = $conn->prepare("SELECT
     MIN(p.id) as first_id,
     COUNT(*) as item_count
     FROM prescriptions p
-    WHERE p.customer_id = ? AND p.status IN ('Processing','Ready','Dispensed')
+    WHERE p.patient_id = ? AND p.status IN ('Processing','Dispensed')
     GROUP BY p.prescription_id
     ORDER BY p.created_at DESC")) {
     $s->bind_param('i', $_SESSION['user_id']);

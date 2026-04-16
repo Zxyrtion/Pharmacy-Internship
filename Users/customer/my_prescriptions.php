@@ -11,7 +11,7 @@ $prescriptions = [];
 if ($s = $conn->prepare("SELECT p.id, p.prescription_id, p.date_prescribed as prescription_date, 
     p.patient_name, p.doctor_name, p.status, p.created_at
     FROM prescriptions p
-    WHERE p.customer_id = ?
+    WHERE p.patient_id = ?
     GROUP BY p.prescription_id
     ORDER BY p.created_at DESC")) {
     $s->bind_param('i', $_SESSION['user_id']);
@@ -81,7 +81,8 @@ if ($s = $conn->prepare("SELECT p.id, p.prescription_id, p.date_prescribed as pr
                             'Pending'    => 'warning text-dark',
                             'Processing' => 'info text-dark',
                             'Ready'      => 'success',
-                            'Dispensed'  => 'secondary',
+                            'Completed'  => 'secondary',
+                            'Cancelled'  => 'danger',
                             default      => 'secondary'
                         };
                     ?>
@@ -96,11 +97,11 @@ if ($s = $conn->prepare("SELECT p.id, p.prescription_id, p.date_prescribed as pr
                                 <a href="payment.php?rx_id=<?= htmlspecialchars($rx['prescription_id']) ?>" class="btn btn-sm btn-success">
                                     <i class="bi bi-cash"></i> Pay Now
                                 </a>
-                            <?php elseif ($rx['status'] === 'Dispensed'): ?>
+                            <?php elseif ($rx['status'] === 'Completed'): ?>
                                 <span class="text-success"><i class="bi bi-check-circle-fill"></i> Completed</span>
                             <?php else: ?>
-                                <a href="purchase_order_view.php" class="btn btn-sm btn-info">
-                                    <i class="bi bi-eye"></i> View Details
+                                <a href="track_dispensing.php" class="btn btn-sm btn-info">
+                                    <i class="bi bi-eye"></i> Track Status
                                 </a>
                             <?php endif; ?>
                         </td>
